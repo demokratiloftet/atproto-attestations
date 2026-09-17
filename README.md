@@ -36,7 +36,8 @@ Choose **Legg inn demokontoer**, then work through the console:
 ## Verify a claim from outside
 
 The verifier is a separate program that holds no credentials and never sees the
-issuer's database:
+issuer's database. Keep the service from the quickstart running: the status
+check is a real request to the issuer, and an unreachable issuer is a refusal.
 
 ```sh
 node src/cli.mjs trust-policy --out trust-policy.json
@@ -51,7 +52,8 @@ npm run verify:claim -- record.json --trust trust-policy.json --claim-types ./cl
 
 It prints each check separately and exits 0 accepted, 1 refused, 2 usage error.
 Revoke the claim and run it again: the signed status answer changes, and the
-same record is refused.
+same record is refused. Add `--no-status` to check a record without contacting
+the issuer at all — useful offline, and honest about what it did not check.
 
 ## How trust works
 
