@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "no.nif.identityLinked",
+  "label": { "nb": "Kontokobling", "en": "Account linkage" },
+  "description": "Kontoen ble koblet til en autentisert identitet hos en godkjent leverandor pa dette tidspunktet. Sier ingenting om medlemskap, rolle eller kvalifikasjon.",
+  "visibility": "public",
+  "maxLifetimeDays": 365,
+  "claim": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["assuranceLevel", "provider"],
+    "properties": {
+      "assuranceLevel": {
+        "type": "string",
+        "enum": ["low", "substantial", "high"],
+        "description": "Hvor sterkt identiteten ble bekreftet. Demo-leverandoren gir aldri mer enn \"low\" uten at det er avtalt."
+      },
+      "provider": { "type": "string", "minLength": 1, "maxLength": 80, "description": "Leverandoren som autentiserte personen, for eksempel demo-idp eller idrettens-id." },
+      "method": { "type": "string", "maxLength": 40, "description": "Innloggingsmetode, for eksempel bankid eller syntetisk-demo." }
+    }
+  },
+  "issuance": { "requesters": [{ "kind": "self" }] },
+  "disclosure": { "mode": "public-record" }
+}

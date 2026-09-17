@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "no.nif.instructorLicence",
+  "label": { "nb": "Instruktorlisens", "en": "Instructor licence" },
+  "description": "Utstederen bekrefter at kontoen har en gyldig instruktorlisens i en navngitt gren, pa et navngitt niva. Dokumentasjonen bak lisensen forlater aldri utstederen.",
+  "visibility": "public",
+  "maxLifetimeDays": 365,
+  "subjectAssurance": { "claimType": "no.nif.identityLinked", "where": { "assuranceLevel": "substantial" } },
+  "claim": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["discipline", "level"],
+    "properties": {
+      "discipline": { "type": "string", "enum": ["svomming", "ski", "friidrett", "klatring"] },
+      "level": { "type": "string", "minLength": 1, "maxLength": 40, "description": "Utstederens egen nivabetegnelse, for eksempel instruktor-2." },
+      "orgId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,39}$", "description": "Laget lisensen ble registrert gjennom, nar det er relevant." }
+    }
+  },
+  "issuance": {
+    "requesters": [
+      { "kind": "self" },
+      { "kind": "attestation", "claimType": "no.nif.clubRole", "where": { "role": "leder", "orgId": "$request.orgId" } }
+    ]
+  },
+  "disclosure": { "mode": "public-record" }
+}
