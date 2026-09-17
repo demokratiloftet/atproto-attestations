@@ -3,7 +3,7 @@
 // allowed, the subject is assured, and the adapter has agreed to the fact.
 import { validateClaim, matchWhere } from '../../verify/claim-type.mjs';
 import { verifyAttestation } from '../../verify/index.mjs';
-import { createAttestation, createStatus } from './attestation.mjs';
+import { createAttestation, createStatus, RECORD_TYPE } from './attestation.mjs';
 import { evaluateRequester } from './policy.mjs';
 import { issuerDocument, suggestedTrustPolicy } from './keys.mjs';
 
@@ -141,8 +141,14 @@ export function createIssuer({ issuer, name, signer, store, claimTypes, adapter,
     issue, query, revoke, status, trustPolicy,
     document: () => issuerDocument({ issuer, name, signer, claimTypes, repo, contact, demo }),
     claimTypes: () => claimTypes,
+    // Public claims only, with the signed record, so the holder can present one
+    // as evidence when they ask the issuer something on their own authority.
     held: subject => store.bySubject(subject).filter(row => claimTypes[row.claimType]?.visibility === 'public')
-      .map(row => ({ id: row.id, claimType: row.claimType, claim: row.claim, issuedAt: row.issuedAt, expiresAt: row.expiresAt, revokedAt: row.revokedAt, uri: row.uri })),
+      .map(row => ({
+        id: row.id, claimType: row.claimType, claim: row.claim, issuedAt: row.issuedAt, expiresAt: row.expiresAt,
+        revokedAt: row.revokedAt, uri: row.uri,
+        record: { $type: RECORD_TYPE, version: 1, jws: row.jws, view: { claimType: row.claimType, subject: row.subject, issuer, issuedAt: row.issuedAt, expiresAt: row.expiresAt, ...(demo ? { demo: true } : {}) } },
+      })),
     audit: limit => store.recentAudit(limit),
   };
 }

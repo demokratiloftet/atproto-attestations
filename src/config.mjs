@@ -10,7 +10,12 @@ export function readConfig(env = process.env, root = process.cwd()) {
   const origin = new URL(env.ISSUER_ORIGIN || (local ? 'http://127.0.0.1:3010' : '')).origin;
   if (!local && !origin.startsWith('https:')) throw new Error('A shared issuer must be reached over HTTPS: set ISSUER_ORIGIN');
 
-  const clients = JSON.parse(env.ISSUER_CLIENTS_JSON || (local ? '[{"id":"local-demo","token":"local-demo-only","scopes":["issue","query","revoke","admin"]}]' : '[]'));
+  const clients = JSON.parse(env.ISSUER_CLIENTS_JSON || (local ? JSON.stringify([
+    { id: 'local-demo', token: 'local-demo-only', scopes: ['issue', 'query', 'revoke', 'admin'] },
+    // A separate credential on purpose: no application can issue a police
+    // certificate with the key it uses for everything else.
+    { id: 'politiet-backend', token: 'local-demo-politiet', scopes: ['issue'] },
+  ]) : '[]'));
   if (!Array.isArray(clients) || !clients.length) throw new Error('Configure at least one client in ISSUER_CLIENTS_JSON');
   for (const client of clients) {
     if (!/^[a-z0-9][a-z0-9-]{0,40}$/.test(client.id || '')) throw new Error(`Invalid client id: ${client.id}`);

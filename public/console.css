@@ -1,0 +1,139 @@
+/* No webfonts: this service is meant to run inside a network-isolated sandbox,
+   so the type works through weight and scale rather than a downloaded family. */
+:root {
+  --paper: #eaede8;
+  --surface: #f7f9f5;
+  --recess: #d9ded6;
+  --ink: #16242e;
+  --muted: #64757e;
+  --line: #c6cec6;
+  --authority: #1b4b6b;
+  --seal: #8f3a2e;
+  --confirm: #2e6b4f;
+  --sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #131a1e; --surface: #1a2328; --recess: #0d1316; --ink: #e6eae4;
+    --muted: #93a29a; --line: #2f3c42; --authority: #7fb3d5; --seal: #e0705f; --confirm: #74c09b;
+  }
+}
+* { box-sizing: border-box; }
+/* A display rule on a custom class must not defeat the hidden attribute. */
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 16px/1.55 var(--sans); -webkit-font-smoothing: antialiased;
+}
+h1, h2 { margin: 0; font-weight: 600; letter-spacing: -0.015em; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 300; letter-spacing: -0.03em; }
+h2 { font-size: 15px; letter-spacing: 0.01em; }
+p { margin: 0; }
+.id { font: 400 13px/1.5 var(--mono); word-break: break-all; }
+
+.identity { padding: 40px 32px 28px; border-bottom: 1px solid var(--line); }
+.chip {
+  display: inline-block; margin-bottom: 14px; padding: 4px 10px;
+  border: 1px solid var(--seal); border-radius: 2px; color: var(--seal);
+  font-size: 12px; font-weight: 600;
+}
+.identity-facts { display: flex; flex-wrap: wrap; gap: 8px 48px; margin: 22px 0 0; }
+.identity-facts div { min-width: 0; }
+.identity-facts dt { color: var(--muted); font-size: 12px; font-weight: 600; }
+.identity-facts dd { margin: 2px 0 0; max-width: 62ch; }
+
+main { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 0; align-items: start; }
+aside { padding: 28px 24px 48px; border-right: 1px solid var(--line); position: sticky; top: 0; }
+aside section + section { margin-top: 32px; }
+aside h2 { color: var(--muted); margin-bottom: 12px; }
+.people, .types { list-style: none; margin: 0; padding: 0; }
+.people li, .types li { padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.people li:last-child, .types li:last-child { border-bottom: 1px solid var(--line); }
+.people strong { display: block; font-weight: 600; }
+.people span, .types span { display: block; color: var(--muted); font-size: 12.5px; }
+.types li.restricted { padding-left: 11px; border-left: 3px solid var(--seal); }
+.empty { color: var(--muted); font-size: 14px; }
+
+.desk { padding: 28px 32px 64px; display: grid; gap: 28px; max-width: 900px; }
+/* Ordinary sections are plain, separated by a rule. The restricted panel is
+   the only contained element on the page, so it reads as a different place. */
+.panel { padding: 22px 0 0; border-top: 1px solid var(--line); }
+.desk > .panel:first-child { border-top: 0; padding-top: 6px; }
+.sealed { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 22px 24px; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.lede { margin: 8px 0 0; color: var(--muted); font-size: 14px; max-width: 68ch; }
+
+/* Restricted claims are answered, never published. The panel is recessed to
+   show that at a glance, rather than saying so in a badge. */
+.sealed {
+  background: var(--recess); border-color: var(--seal);
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, .06);
+}
+.sealed h2 { color: var(--seal); }
+
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 18px; align-items: end; }
+label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.inline { font-size: 12.5px; display: flex; gap: 8px; align-items: center; }
+input, select {
+  width: 100%; margin-top: 5px; padding: 9px 10px; font: 400 14px var(--sans);
+  color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 3px;
+}
+.inline select { margin-top: 0; width: auto; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--authority); outline-offset: 2px; }
+button {
+  padding: 10px 16px; font: 600 14px var(--sans); border-radius: 3px; border: 1px solid transparent; cursor: pointer;
+}
+.primary { background: var(--authority); color: var(--surface); }
+.seal { background: none; color: var(--seal); border-color: var(--seal); box-shadow: inset 0 0 0 1px var(--seal); }
+.seal:hover { background: var(--seal); color: var(--surface); }
+.quiet { margin-top: 12px; background: none; border-color: var(--line); color: var(--ink); width: 100%; }
+button[disabled] { opacity: .55; cursor: progress; }
+.note { margin-top: 14px; font-size: 14px; color: var(--seal); }
+.note.ok { color: var(--confirm); }
+
+.held { list-style: none; margin: 16px 0 0; padding: 0; }
+.held li { display: flex; gap: 14px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.held .what { font-weight: 600; font-size: 14px; }
+.held .detail { color: var(--muted); font-size: 13px; flex: 1 1 200px; }
+.held .state { font-size: 12.5px; font-weight: 600; color: var(--confirm); }
+.held .state.gone { color: var(--muted); }
+.held button { padding: 6px 12px; background: none; border-color: var(--line); color: var(--ink); font-size: 13px; }
+
+.answer { display: block; margin-top: 18px; padding: 16px 18px; background: var(--surface); border-left: 3px solid var(--confirm); }
+.answer.refused { border-left-color: var(--seal); }
+.answer strong { display: block; font-size: 19px; font-weight: 600; }
+.answer span { color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) {
+  /* The one moment of motion: an answer resolving into place. */
+  .answer { animation: settle .32s ease-out; }
+  @keyframes settle { from { opacity: 0; transform: translateY(-4px); } }
+}
+
+.aside-form { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 14px; }
+.aside-form summary { font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--seal); }
+.aside-form code { font: 400 13px var(--mono); }
+
+.audit { list-style: none; margin: 16px 0 0; padding: 0; font-size: 13.5px; }
+.audit li { display: grid; grid-template-columns: 72px 116px minmax(0, 1fr); gap: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
+.audit time { font: 400 13px var(--mono); color: var(--muted); }
+.audit .outcome { font-weight: 600; }
+.audit .denied { color: var(--seal); }
+.audit .allowed { color: var(--confirm); }
+.audit .what { color: var(--muted); min-width: 0; }
+
+dialog { border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); max-width: 420px; padding: 26px; }
+dialog::backdrop { background: rgba(10, 20, 26, .45); }
+dialog p { margin: 10px 0 16px; font-size: 14px; color: var(--muted); }
+dialog code { font: 400 13px var(--mono); }
+dialog button { width: 100%; margin-top: 16px; }
+
+#toast {
+  position: fixed; inset: auto 24px 24px auto; max-width: 380px; padding: 12px 16px;
+  background: var(--ink); color: var(--paper); border-radius: 3px; font-size: 14px;
+}
+@media (max-width: 760px) {
+  main { grid-template-columns: 1fr; }
+  aside { position: static; border-right: 0; border-bottom: 1px solid var(--line); }
+  .identity, .desk, aside { padding-left: 20px; padding-right: 20px; }
+}
