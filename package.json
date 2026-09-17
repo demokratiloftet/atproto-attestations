@@ -1,0 +1,21 @@
+{
+  "name": "attestation-issuer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A reusable attestation issuer: an organisation states a narrow, checkable fact about an account, and any application can verify it without reaching the organisation's data.",
+  "engines": { "node": ">=22" },
+  "bin": {
+    "attest-issuer": "src/cli.mjs",
+    "attest-verify": "verify/cli.mjs"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "dev": "docker compose up -d --build --wait",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f issuer",
+    "test": "node --test test/*.test.mjs",
+    "issuer": "node src/cli.mjs",
+    "verify:claim": "node verify/cli.mjs"
+  }
+}
