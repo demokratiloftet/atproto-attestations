@@ -1,0 +1,25 @@
+{
+  "_comment": "What a consuming application holds. Get the real values from the issuer's /trust-policy.json, then review them before pinning: this file is the whole basis on which the application accepts a claim.",
+  "version": 1,
+  "maxClockSkewSeconds": 60,
+  "maxStatusAgeSeconds": 300,
+  "requireStatusCheck": true,
+  "trust": [
+    {
+      "claimTypes": ["no.nif.clubRole", "no.nif.instructorLicence", "no.nif.identityLinked"],
+      "issuer": "https://utsteder.example.no/.well-known/attestation-issuer.json",
+      "repo": "did:plc:REPLACE-WITH-THE-ISSUERS-REPOSITORY-DID",
+      "keys": [
+        {
+          "kty": "EC",
+          "crv": "P-256",
+          "x": "REPLACE-WITH-THE-ISSUERS-PUBLIC-KEY-X",
+          "y": "REPLACE-WITH-THE-ISSUERS-PUBLIC-KEY-Y",
+          "kid": "key-1",
+          "alg": "ES256",
+          "use": "sig"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+name: attestation-issuer
+services:
+  issuer:
+    build: .
+    image: attestation-issuer:local
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      ISSUER_ENV: local
+      ISSUER_ORIGIN: http://127.0.0.1:3011
+      ISSUER_NAME: Demo-utsteder (syntetisk)
+      ISSUER_DATA_DIR: /data
+      # "none" keeps every attestation with the issuer. Set "atproto" and the
+      # ATPROTO_* variables to publish public claims to a repository, and join
+      # the network that reaches your PDS.
+      ISSUER_PUBLISHER: none
+    volumes:
+      - issuer-data:/data
+    # Loopback only. This service holds a signing key; it is not a public site.
+    ports: ["127.0.0.1:3011:3011"]
+volumes:
+  issuer-data:

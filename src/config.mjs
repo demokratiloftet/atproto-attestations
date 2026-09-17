@@ -7,7 +7,7 @@ const bool = (value, fallback) => value === undefined ? fallback : ['1', 'true',
 export function readConfig(env = process.env, root = process.cwd()) {
   const environment = env.ISSUER_ENV || 'local';
   const local = environment === 'local';
-  const origin = new URL(env.ISSUER_ORIGIN || (local ? 'http://127.0.0.1:3010' : '')).origin;
+  const origin = new URL(env.ISSUER_ORIGIN || (local ? 'http://127.0.0.1:3011' : '')).origin;
   if (!local && !origin.startsWith('https:')) throw new Error('A shared issuer must be reached over HTTPS: set ISSUER_ORIGIN');
 
   const clients = JSON.parse(env.ISSUER_CLIENTS_JSON || (local ? JSON.stringify([
@@ -34,7 +34,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
     name: env.ISSUER_NAME || 'Demo-utsteder (syntetisk)',
     contact: env.ISSUER_CONTACT,
     demo: bool(env.ISSUER_DEMO, true),
-    port: Number(env.PORT || 3010),
+    port: Number(env.PORT || 3011),
     host: env.HOST || '0.0.0.0',
     dataDir: env.ISSUER_DATA_DIR || join(root, 'data'),
     claimTypesDir: env.ISSUER_CLAIM_TYPES_DIR || join(root, 'claim-types'),
