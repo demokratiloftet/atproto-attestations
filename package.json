@@ -4,18 +4,35 @@
   "private": true,
   "type": "module",
   "description": "A reusable attestation issuer: an organisation states a narrow, checkable fact about an account, and any application can verify it without reaching the organisation's data.",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=24.17 <25"
+  },
   "bin": {
-    "attest-issuer": "src/cli.mjs",
-    "attest-verify": "verify/cli.mjs"
+    "attest-issuer": "dist/src/cli.js",
+    "attest-verify": "dist/verify/cli.js"
   },
   "scripts": {
-    "start": "node src/server.mjs",
+    "start": "node dist/src/server.js",
     "dev": "docker compose up -d --build --wait",
     "down": "docker compose down",
     "logs": "docker compose logs -f issuer",
-    "test": "node --test test/*.test.mjs",
-    "issuer": "node src/cli.mjs",
-    "verify:claim": "node verify/cli.mjs"
+    "test": "node --test dist/test/*.test.js",
+    "issuer": "node dist/src/cli.js",
+    "verify:claim": "node dist/verify/cli.js",
+    "prestart": "npm run build",
+    "build": "tsc && node scripts/assets.ts",
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm run build",
+    "preissuer": "npm run build",
+    "preverify:claim": "npm run build",
+    "format": "prettier --write src verify test public/*.ts scripts",
+    "format:check": "prettier --check src verify test public/*.ts scripts",
+    "pack:verifier": "npm run build && npm pack ./dist/verify --pack-destination dist",
+    "test:package": "npm run pack:verifier && node scripts/check-verifier.ts"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "@types/node": "24.19.1",
+    "prettier": "3.9.9"
   }
 }

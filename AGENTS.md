@@ -9,7 +9,7 @@
   policy binding and a stale status answer are all refusals, never "probably
   fine".
 - Authorisation belongs in the claim-type descriptor, evaluated by
-  `src/core/policy.mjs`. Do not special-case a claim type in the issuer, the
+  `src/core/policy.ts`. Do not special-case a claim type in the issuer, the
   server or the console.
 - Adapters answer whether a fact is true. They never sign, publish, or decide
   who may ask. Keep AT Protocol and HTTP out of them.

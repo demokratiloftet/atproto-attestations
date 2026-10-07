@@ -12,14 +12,16 @@ organisation writes one adapter against its own systems. Everything else —
 the claim envelope, signing, key publication, policy, revocation, audit and
 the verification library — is here.
 
-Node.js 22 or newer. No runtime dependencies.
+Node.js 24.17.x (see `.node-version`). No runtime dependencies.
 
 ## Try it in two minutes
 
 ```sh
 gh repo clone demokratiloftet/attestation-issuer
 cd attestation-issuer
-npm run dev                     # or: node src/server.mjs
+npm ci
+npm run build
+npm run dev                     # or: npm start
 open http://127.0.0.1:3011      # key: local-demo-only
 ```
 
@@ -42,9 +44,9 @@ issuer's database. Keep the service from the quickstart running: the status
 check is a real request to the issuer, and an unreachable issuer is a refusal.
 
 ```sh
-node src/cli.mjs trust-policy --out trust-policy.json
-node src/cli.mjs issue --claim-type no.nif.identityLinked --subject did:plc:demo-trener
-node src/cli.mjs issue --claim-type no.nif.instructorLicence \
+node dist/src/cli.js trust-policy --out trust-policy.json
+node dist/src/cli.js issue --claim-type no.nif.identityLinked --subject did:plc:demo-trener
+node dist/src/cli.js issue --claim-type no.nif.instructorLicence \
   --subject did:plc:demo-trener --request discipline=svomming > licence.json
 node -e "require('fs').writeFileSync('record.json',JSON.stringify(require('./licence.json').record))"
 
@@ -173,7 +175,7 @@ the claim does not have, or query-only disclosure with nobody allowed to ask.
 
 See `src/adapters/README.md`. An adapter answers one question — *is this fact
 true about this account, right now?* — and never signs, publishes, or decides
-who may ask. `src/adapters/demo-nif.mjs` is a synthetic example whose
+who may ask. `src/adapters/demo-nif.ts` is a synthetic example whose
 "database" is a JSON file. Replacing it with a real integration must not
 require touching anything else.
 
@@ -244,3 +246,25 @@ HTTPS and independently generated client tokens of at least 24 characters.
 
 This issuer is not currently a public VPS service. CI does not deploy it or
 activate real NIF/police integrations. See [security policy](SECURITY.md).
+
+
+## Strict TypeScript and the independent verifier
+
+All maintained server, browser, verifier, CLI and test code is strict TypeScript.
+Run `npm run typecheck` and `npm run format:check` for checks. `npm test` builds
+and runs the emitted code, including the full HTTP issuance/query/revocation journey.
+The Docker image compiles with pinned Node 24.17.0 and runs only emitted JavaScript;
+WebCrypto and SQLite still require no runtime dependencies.
+
+`npm run pack:verifier` creates `dist/loftet-attestation-verifier-0.1.0.tgz`.
+Install that archive in a consuming app and import `verifyAttestation` and its
+public types from `@loftet/attestation-verifier`. The archive contains only
+compiled `verify/` modules and declarations, with no issuer, signing implementation,
+private keys or dependencies. Its CLI is `attest-verify`. Trust-policy parsing and
+runtime payload/schema validation remain mandatory; TypeScript does not make
+external JSON trustworthy.
+
+The migration also rejects malformed schema metadata and request bodies, refuses
+nonfinite trust-policy time windows, and checks own schema properties so inherited
+names such as `__proto__` cannot bypass `additionalProperties: false`. The console
+constructs selectable labels with DOM text nodes and escapes audit identities.

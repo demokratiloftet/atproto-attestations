@@ -8,22 +8,29 @@ question, from the organisation's own systems:
 It never signs, never publishes, never decides who may ask, and never sees the
 signing key. If it cannot answer, it says so, and nothing is issued.
 
-```js
-export default {
-  id: 'nif',
-  claimTypes: ['no.nif.clubRole', 'no.nif.instructorLicence'],
+```ts
+import type { AdapterRequest, AdapterAnswer } from "../types.js";
 
-  async check({ claimType, subject, request, requester }) {
+export default {
+  id: "nif",
+  claimTypes: ["no.nif.clubRole", "no.nif.instructorLicence"],
+
+  async check({ subject, request }: AdapterRequest): Promise<AdapterAnswer> {
     // subject   the account the claim would be about (a DID)
-    // request   what was asked for, already checked against the claim schema
+    // request   what was asked for; only the returned claim is schema-validated
     // requester who is asking, after the issuance policy allowed them
     const person = await lookUpInOurOwnSystems(subject);
-    if (!person) return { granted: false, reason: 'Ukjent konto hos utstederen.' };
+    if (!person)
+      return { granted: false, reason: "Ukjent konto hos utstederen." };
 
     return {
       granted: true,
-      claim: { orgId: request.orgId, orgName: person.club.name, role: person.role },
-      maxLifetimeDays: 90,   // optional: shorter than the claim type allows
+      claim: {
+        orgId: request.orgId,
+        orgName: person.club.name,
+        role: person.role,
+      },
+      maxLifetimeDays: 90, // optional: shorter than the claim type allows
     };
   },
 };

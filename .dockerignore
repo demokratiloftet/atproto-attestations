@@ -1,0 +1,14 @@
+*
+!package.json
+!package-lock.json
+!tsconfig.json
+!src/
+!src/**
+!verify/
+!verify/**
+!public/
+!public/**
+!scripts/
+!scripts/**
+!claim-types/
+!claim-types/**
