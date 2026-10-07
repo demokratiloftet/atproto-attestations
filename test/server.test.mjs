@@ -1,6 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { request } from 'node:http';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -98,4 +99,17 @@ test('the status of an unknown attestation is answered, not leaked as a 404', as
   const response = await call('/status/does-not-exist', { token: null });
   assert.equal(response.status, 200);
   assert.equal(typeof (await response.json()).jws, 'string');
+});
+
+
+test('refuses rebinding and foreign browser origins even with a valid token', async () => {
+  for (const headers of [{host: 'attacker.invalid'}, {origin: 'https://attacker.invalid'}]) {
+    const status = await new Promise((resolve, reject) => {
+      const req = request(`${base}/audit`, {headers: {
+        authorization: 'Bearer test-client-token-0123456789', ...headers,
+      }}, response => { response.resume(); resolve(response.statusCode); });
+      req.on('error', reject); req.end();
+    });
+    assert.equal(status, 403);
+  }
 });

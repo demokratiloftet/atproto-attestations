@@ -8,6 +8,7 @@ services:
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     environment:
+      HOST: 0.0.0.0
       ISSUER_ENV: local
       ISSUER_ORIGIN: http://127.0.0.1:3011
       ISSUER_NAME: Demo-utsteder (syntetisk)

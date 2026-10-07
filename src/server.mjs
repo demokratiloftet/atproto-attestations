@@ -56,6 +56,9 @@ const server = http.createServer(async (req, res) => {
     const path = url.pathname;
 
     if (req.method === 'GET' && path === '/health') return send(200, { ok: true, environment: config.environment });
+    if (req.headers.host !== new URL(config.origin).host) return send(403, { error: 'Unknown host' });
+    // API clients need no Origin header; browser calls must match this issuer.
+    if (req.headers.origin && req.headers.origin !== config.origin) return send(403, { error: 'Unexpected origin' });
     // The key document and the trust policy must be fetchable by anyone: an
     // application cannot verify a claim without them.
     if (req.method === 'GET' && path === '/.well-known/attestation-issuer.json') return send(200, issuer.document());
@@ -122,7 +125,7 @@ const server = http.createServer(async (req, res) => {
     return send(404, { error: 'Not found' });
   } catch (error) {
     const status = error.status && error.status < 600 ? error.status : 500;
-    if (status >= 500) console.error(error);
+    if (status >= 500) console.error('Issuer request failed:', error.name);
     send(status, { error: status >= 500 ? 'Utstederen kunne ikke behandle forespørselen.' : error.message });
   }
 });

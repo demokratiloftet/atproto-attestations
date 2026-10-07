@@ -17,6 +17,8 @@ Node.js 22 or newer. No runtime dependencies.
 ## Try it in two minutes
 
 ```sh
+gh repo clone demokratiloftet/attestation-issuer
+cd attestation-issuer
 npm run dev                     # or: node src/server.mjs
 open http://127.0.0.1:3011      # key: local-demo-only
 ```
@@ -231,3 +233,14 @@ delegation chains deeper than one level, and any real personal data.
 
 All four shipped claim types are demonstrations with synthetic data. Nothing
 here is endorsed by, or connected to, NIF, Idrettens ID or politiet.
+
+## Repository checks and deployment
+
+Run `npm test` before committing. CI also builds the container and scans the full
+Git history for secrets. The direct Node server binds loopback by default;
+Compose explicitly binds inside its container and publishes only host loopback.
+Foreign Host/Origin headers and empty client tokens are refused. Shared use needs
+HTTPS and independently generated client tokens of at least 24 characters.
+
+This issuer is not currently a public VPS service. CI does not deploy it or
+activate real NIF/police integrations. See [security policy](SECURITY.md).

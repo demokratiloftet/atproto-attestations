@@ -5,3 +5,12 @@ data/
 .env.*
 !.env.example
 keys/
+
+# Private operator state and audit output
+.secrets/
+.runtime/
+*.sqlite*
+*.pem
+*.key
+*.log
+.DS_Store

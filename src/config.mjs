@@ -8,6 +8,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
   const environment = env.ISSUER_ENV || 'local';
   const local = environment === 'local';
   const origin = new URL(env.ISSUER_ORIGIN || (local ? 'http://127.0.0.1:3011' : '')).origin;
+  if (local && !['127.0.0.1', 'localhost', '[::1]'].includes(new URL(origin).hostname)) throw new Error('Local demo credentials require a loopback origin');
   if (!local && !origin.startsWith('https:')) throw new Error('A shared issuer must be reached over HTTPS: set ISSUER_ORIGIN');
 
   const clients = JSON.parse(env.ISSUER_CLIENTS_JSON || (local ? JSON.stringify([
@@ -19,7 +20,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
   if (!Array.isArray(clients) || !clients.length) throw new Error('Configure at least one client in ISSUER_CLIENTS_JSON');
   for (const client of clients) {
     if (!/^[a-z0-9][a-z0-9-]{0,40}$/.test(client.id || '')) throw new Error(`Invalid client id: ${client.id}`);
-    if (typeof client.token !== 'string' || (!local && client.token.length < 24)) throw new Error(`Client ${client.id} needs a token of at least 24 characters`);
+    if (typeof client.token !== 'string' || !client.token || (!local && client.token.length < 24)) throw new Error(`Client ${client.id} needs a nonempty token (at least 24 characters when shared)`);
     if (!Array.isArray(client.scopes) || !client.scopes.length) throw new Error(`Client ${client.id} needs scopes`);
   }
 
@@ -35,7 +36,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
     contact: env.ISSUER_CONTACT,
     demo: bool(env.ISSUER_DEMO, true),
     port: Number(env.PORT || 3011),
-    host: env.HOST || '0.0.0.0',
+    host: env.HOST || '127.0.0.1',
     dataDir: env.ISSUER_DATA_DIR || join(root, 'data'),
     claimTypesDir: env.ISSUER_CLAIM_TYPES_DIR || join(root, 'claim-types'),
     keyId: env.ISSUER_KEY_ID || 'key-1',
