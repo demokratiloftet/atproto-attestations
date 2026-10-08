@@ -18,11 +18,10 @@ try {
     }),
   );
   execFileSync(
-    "npm",
+    "pnpm",
     [
-      "install",
+      "add",
       "--ignore-scripts",
-      "--no-audit",
       join(root, "dist/loftet-attestation-verifier-0.1.0.tgz"),
     ],
     { cwd: directory, stdio: "pipe" },
@@ -98,19 +97,23 @@ console.log('PASS standalone package verifies a real signature and refuses inval
     cwd: directory,
     stdio: "inherit",
   });
-  const contents: { files: { path: string }[] }[] = JSON.parse(
-    execFileSync("npm", ["pack", "./dist/verify", "--dry-run", "--json"], {
-      cwd: root,
-      encoding: "utf8",
-    }),
+  const contents: { files: { path: string }[] } = JSON.parse(
+    execFileSync(
+      "pnpm",
+      ["--dir", "dist/verify", "pack", "--dry-run", "--json"],
+      {
+        cwd: root,
+        encoding: "utf8",
+      },
+    ),
   );
   assert(
-    contents[0].files.every((file) =>
+    contents.files.every((file) =>
       /^(package\.json|[a-z-]+\.(js|d\.ts))$/.test(file.path),
     ),
   );
   assert(
-    !contents[0].files.some((file) => /^(sign|issuer|keys)\./.test(file.path)),
+    !contents.files.some((file) => /^(sign|issuer|keys)\./.test(file.path)),
   );
   console.log(
     "PASS verifier declarations compile without DOM; package contains no issuer implementation",

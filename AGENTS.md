@@ -17,7 +17,7 @@
   `expired` and nothing more. Every query is audited, allowed or refused.
 - Keep demonstration data synthetic and labelled. No implied NIF, Idrettens ID
   or politiet integration in code, copy or screenshots.
-- Run `npm test` before committing. Add a test for every refusal a change
+- Run `pnpm test` before committing. Add a test for every refusal a change
   introduces, not only the path that succeeds.
 - Keep credentials and signing keys out of source, responses, logs and
   screenshots. `data/` is ignored on purpose.

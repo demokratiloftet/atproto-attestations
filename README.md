@@ -17,11 +17,13 @@ Node.js 24.17.x (see `.node-version`). No runtime dependencies.
 ## Try it in two minutes
 
 ```sh
+# One-time setup if pnpm is not installed:
+npm install --global pnpm@11.8.0
 gh repo clone demokratiloftet/attestation-issuer
 cd attestation-issuer
-npm ci
-npm run build
-npm run dev                     # or: npm start
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm run dev                     # or: pnpm start
 open http://127.0.0.1:3011      # key: local-demo-only
 ```
 
@@ -50,7 +52,7 @@ node dist/src/cli.js issue --claim-type no.nif.instructorLicence \
   --subject did:plc:demo-trener --request discipline=svomming > licence.json
 node -e "require('fs').writeFileSync('record.json',JSON.stringify(require('./licence.json').record))"
 
-npm run verify:claim -- record.json --trust trust-policy.json --claim-types ./claim-types \
+pnpm run verify:claim record.json --trust trust-policy.json --claim-types ./claim-types \
   --expect-subject did:plc:demo-trener --expect-claim discipline=svomming
 ```
 
@@ -238,7 +240,7 @@ here is endorsed by, or connected to, NIF, Idrettens ID or politiet.
 
 ## Repository checks and deployment
 
-Run `npm test` before committing. CI also builds the container and scans the full
+Run `pnpm test` before committing. CI also builds the container and scans the full
 Git history for secrets. The direct Node server binds loopback by default;
 Compose explicitly binds inside its container and publishes only host loopback.
 Foreign Host/Origin headers and empty client tokens are refused. Shared use needs
@@ -251,12 +253,12 @@ activate real NIF/police integrations. See [security policy](SECURITY.md).
 ## Strict TypeScript and the independent verifier
 
 All maintained server, browser, verifier, CLI and test code is strict TypeScript.
-Run `npm run typecheck` and `npm run format:check` for checks. `npm test` builds
+Run `pnpm run typecheck` and `pnpm run format:check` for checks. `pnpm test` builds
 and runs the emitted code, including the full HTTP issuance/query/revocation journey.
 The Docker image compiles with pinned Node 24.17.0 and runs only emitted JavaScript;
 WebCrypto and SQLite still require no runtime dependencies.
 
-`npm run pack:verifier` creates `dist/loftet-attestation-verifier-0.1.0.tgz`.
+`pnpm run pack:verifier` creates `dist/loftet-attestation-verifier-0.1.0.tgz`.
 Install that archive in a consuming app and import `verifyAttestation` and its
 public types from `@loftet/attestation-verifier`. The archive contains only
 compiled `verify/` modules and declarations, with no issuer, signing implementation,

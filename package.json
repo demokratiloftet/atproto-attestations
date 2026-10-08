@@ -5,7 +5,8 @@
   "type": "module",
   "description": "A reusable attestation issuer: an organisation states a narrow, checkable fact about an account, and any application can verify it without reaching the organisation's data.",
   "engines": {
-    "node": ">=24.17 <25"
+    "node": ">=24.17 <25",
+    "pnpm": ">=11 <12"
   },
   "bin": {
     "attest-issuer": "dist/src/cli.js",
@@ -19,20 +20,21 @@
     "test": "node --test dist/test/*.test.js",
     "issuer": "node dist/src/cli.js",
     "verify:claim": "node dist/verify/cli.js",
-    "prestart": "npm run build",
+    "prestart": "pnpm run build",
     "build": "tsc && node scripts/assets.ts",
     "typecheck": "tsc --noEmit",
-    "pretest": "npm run build",
-    "preissuer": "npm run build",
-    "preverify:claim": "npm run build",
+    "pretest": "pnpm run build",
+    "preissuer": "pnpm run build",
+    "preverify:claim": "pnpm run build",
     "format": "prettier --write src verify test public/*.ts scripts",
     "format:check": "prettier --check src verify test public/*.ts scripts",
-    "pack:verifier": "npm run build && npm pack ./dist/verify --pack-destination dist",
-    "test:package": "npm run pack:verifier && node scripts/check-verifier.ts"
+    "pack:verifier": "pnpm run build && pnpm --dir dist/verify pack --pack-destination ..",
+    "test:package": "pnpm run pack:verifier && node scripts/check-verifier.ts"
   },
   "devDependencies": {
     "typescript": "7.0.2",
     "@types/node": "24.19.1",
     "prettier": "3.9.9"
-  }
+  },
+  "packageManager": "pnpm@11.8.0"
 }
