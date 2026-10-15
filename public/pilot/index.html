@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Tilknytning · Organisasjoner og roller</title>
+    <link rel="stylesheet" href="/assets/pilot.css" />
+    <script type="module" src="/assets/pilot.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Tilknytning, forsiden"
+        ><span class="brand-mark">↔</span
+        ><span>Tilknytning<small>DEMOKRATILØFTET</small></span></a
+      >
+      <div class="top-actions">
+        <span class="demo-badge"><i></i> Isolert demo</span>
+        <div id="account"></div>
+      </div>
+    </header>
+    <div class="demo-strip">
+      Demonstrasjonskontoer og syntetiske tilknytninger. Ingen bekreftelse av
+      reelle arbeidsforhold.
+    </div>
+    <main>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">ORGANISASJONER OG ROLLER / TOVEIS BEKREFTELSE</p>
+          <h1>En tilknytning.<br /><em>Bekreftet av begge.</em></h1>
+          <p class="lede">
+            Personen bekrefter rollen. Organisasjonen bekrefter tilknytningen.
+            Fullmakter bestemmer hva personen kan gjøre.
+          </p>
+        </div>
+        <div class="connection-card">
+          <div class="connection-person">
+            <span class="avatar">P</span><strong>Person</strong
+            ><small>Godtar innholdet</small>
+          </div>
+          <span class="connection-line">↔</span>
+          <div class="connection-person">
+            <span class="avatar org-avatar">O</span><strong>Organisasjon</strong
+            ><small>Bekrefter tilknytningen</small>
+          </div>
+          <p>Samme rolle · samme område · samme versjon</p>
+        </div>
+      </section>
+      <div id="notice" role="status" aria-live="polite"></div>
+      <div class="workspace-head">
+        <div>
+          <p class="eyebrow">ARBEIDSOMRÅDE</p>
+          <select id="organisation" aria-label="Velg organisasjon"></select>
+        </div>
+        <button id="new-proposal" class="primary" hidden>
+          + Ny tilknytning
+        </button>
+      </div>
+      <nav id="tabs" aria-label="Visninger"></nav>
+      <section id="content" aria-live="polite"></section>
+      <footer>
+        Bygget på AT Protocol <span>·</span> Signerte bekreftelser
+        <span>·</span> Tilgang kontrolleres ved hver handling
+      </footer>
+    </main>
+    <dialog id="login-dialog">
+      <form id="login-form">
+        <div class="dialog-head">
+          <h2>Logg inn i demoen</h2>
+          <button type="button" class="close" data-close aria-label="Lukk">
+            ×
+          </button>
+        </div>
+        <p class="muted">
+          Bruk en av de isolerte demokontoene. Passordet får du av
+          demoansvarlig.
+        </p>
+        <label
+          >Demokonto<select
+            name="handle"
+            id="login-handle"
+            required
+          ></select></label
+        ><label
+          >Passord<input
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+        /></label>
+        <p class="form-error" id="login-error" role="alert"></p>
+        <button class="primary full" type="submit">Logg inn</button>
+        <p class="fineprint">
+          Dette logger inn på demoens private PDS. Ikke bruk passordet til en
+          offentlig AT-konto.
+        </p>
+      </form>
+    </dialog>
+    <dialog id="proposal-dialog">
+      <form id="proposal-form">
+        <div class="dialog-head">
+          <h2 id="proposal-title">Ny tilknytning</h2>
+          <button type="button" class="close" data-close aria-label="Lukk">
+            ×
+          </button>
+        </div>
+        <p class="muted">
+          Du godkjenner opplysningene du sender. Den andre parten må godta samme
+          versjon.
+        </p>
+        <label
+          >Person<select name="subject" id="proposal-subject" required></select
+        ></label>
+        <div class="form-grid">
+          <label
+            >Tilknytning<select name="relationship">
+              <option value="employee">Ansatt</option>
+              <option value="contractor">Oppdragstaker</option>
+              <option value="member">Medlem</option>
+              <option value="volunteer">Frivillig</option>
+              <option value="electedRepresentative">Folkevalgt</option>
+            </select></label
+          ><label
+            >Område<select name="scope" id="proposal-scope"></select></label
+          ><label
+            >Rolle<input
+              name="roleLabel"
+              placeholder="For eksempel rådgiver eller trener"
+              maxlength="120"
+              required /></label
+          ><label
+            >Stabil rollekode<input
+              name="roleId"
+              placeholder="For eksempel organisasjon.radgiver"
+              pattern="[a-z][a-z0-9.\-]{1,79}"
+              required /></label
+          ><label
+            >Gyldig fra<input
+              name="validFrom"
+              type="datetime-local"
+              required /></label
+          ><label
+            >Gyldig til<input name="expiresAt" type="datetime-local" required
+          /></label>
+        </div>
+        <fieldset>
+          <legend>Synlighet</legend>
+          <label class="radio"
+            ><input type="radio" name="visibility" value="public" checked />
+            Offentlig bekreftelse</label
+          ><label class="radio"
+            ><input type="radio" name="visibility" value="private" /> Privat
+            tilknytning</label
+          >
+        </fieldset>
+        <p class="fineprint">
+          Offentlige bekreftelser publiseres i demoens AT-repositorier og vises
+          her. Andre kan kopiere dem. Private tilknytninger kan gi fullmakter
+          uten publisering.
+        </p>
+        <p id="proposal-error" class="form-error" role="alert"></p>
+        <button class="primary full" type="submit">
+          Send til den andre parten
+        </button>
+      </form>
+    </dialog>
+    <dialog id="verify-dialog">
+      <div class="dialog-head">
+        <h2>Kontroll av bekreftelsen</h2>
+        <button class="close" data-close aria-label="Lukk">×</button>
+      </div>
+      <div id="verify-content"></div>
+    </dialog>
+  </body>
+</html>

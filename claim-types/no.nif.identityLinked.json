@@ -15,8 +15,17 @@
         "enum": ["low", "substantial", "high"],
         "description": "Hvor sterkt identiteten ble bekreftet. Demo-leverandoren gir aldri mer enn \"low\" uten at det er avtalt."
       },
-      "provider": { "type": "string", "minLength": 1, "maxLength": 80, "description": "Leverandoren som autentiserte personen, for eksempel demo-idp eller idrettens-id." },
-      "method": { "type": "string", "maxLength": 40, "description": "Innloggingsmetode, for eksempel bankid eller syntetisk-demo." }
+      "provider": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80,
+        "description": "Leverandoren som autentiserte personen, for eksempel demo-idp eller idrettens-id."
+      },
+      "method": {
+        "type": "string",
+        "maxLength": 40,
+        "description": "Innloggingsmetode, for eksempel bankid eller syntetisk-demo."
+      }
     }
   },
   "issuance": { "requesters": [{ "kind": "self" }] },

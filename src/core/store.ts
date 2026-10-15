@@ -1,16 +1,17 @@
-import type { AuditEntry, StoredAttestation } from "../types.ts";
-import { object } from "../../verify/values.ts";
+import { mkdirSync, chmodSync } from "node:fs";
+import { join } from "node:path";
 // Issued attestations and an audit trail. The evidence behind a claim is never
 // stored here: this holds what was stated, to whom, by whose authority, and
 // every question asked about a restricted claim.
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync, chmodSync } from "node:fs";
-import { join } from "node:path";
+
+import { object } from "../../verify/values.ts";
+import type { AuditEntry, StoredAttestation } from "../types.ts";
 
 export class IssuerStore {
   private readonly db: DatabaseSync;
   constructor(directory: string) {
-    mkdirSync(directory, { recursive: true, mode: 0o700 });
+    mkdirSync(directory, { mode: 0o700, recursive: true });
     const file = join(directory, "issuer.sqlite");
     this.db = new DatabaseSync(file);
     try {
@@ -32,7 +33,7 @@ export class IssuerStore {
   put(row: StoredAttestation) {
     this.db
       .prepare(
-        "INSERT INTO attestations (id,claim_type,subject,claim,issued_at,expires_at,visibility,jws,uri,cid) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO attestations (id,claim_type,subject,claim,issued_at,expires_at,visibility,jws,uri,cid) VALUES (?,?,?,?,?,?,?,?,?,?)"
       )
       .run(
         row.id,
@@ -44,7 +45,7 @@ export class IssuerStore {
         row.visibility,
         row.jws,
         row.uri ?? null,
-        row.cid ?? null,
+        row.cid ?? null
       );
   }
   get(id: string) {
@@ -56,7 +57,7 @@ export class IssuerStore {
   active(subject: string, claimType: string, now = new Date().toISOString()) {
     return this.db
       .prepare(
-        "SELECT * FROM attestations WHERE subject=? AND claim_type=? AND revoked_at IS NULL AND expires_at > ? ORDER BY issued_at DESC",
+        "SELECT * FROM attestations WHERE subject=? AND claim_type=? AND revoked_at IS NULL AND expires_at > ? ORDER BY issued_at DESC"
       )
       .all(subject, claimType, now)
       .map(hydrate);
@@ -64,7 +65,7 @@ export class IssuerStore {
   bySubject(subject: string) {
     return this.db
       .prepare(
-        "SELECT * FROM attestations WHERE subject=? ORDER BY issued_at DESC",
+        "SELECT * FROM attestations WHERE subject=? ORDER BY issued_at DESC"
       )
       .all(subject)
       .map(hydrate);
@@ -73,7 +74,7 @@ export class IssuerStore {
     return (
       this.db
         .prepare(
-          "UPDATE attestations SET revoked_at=? WHERE id=? AND revoked_at IS NULL",
+          "UPDATE attestations SET revoked_at=? WHERE id=? AND revoked_at IS NULL"
         )
         .run(at, id).changes > 0
     );
@@ -86,7 +87,7 @@ export class IssuerStore {
   audit(entry: AuditEntry) {
     this.db
       .prepare(
-        "INSERT INTO audit (at,action,outcome,actor,claim_type,subject,detail) VALUES (?,?,?,?,?,?,?)",
+        "INSERT INTO audit (at,action,outcome,actor,claim_type,subject,detail) VALUES (?,?,?,?,?,?,?)"
       )
       .run(
         new Date().toISOString(),
@@ -95,7 +96,7 @@ export class IssuerStore {
         entry.actor ?? null,
         entry.claimType ?? null,
         entry.subject ?? null,
-        entry.detail ?? null,
+        entry.detail ?? null
       );
   }
   recentAudit(limit = 50) {
@@ -112,24 +113,27 @@ function hydrate(input: unknown): StoredAttestation {
   const row = object(input, "stored attestation");
   const text = (name: string): string => {
     const value = row[name];
-    if (typeof value !== "string") throw new Error(`Invalid stored ${name}`);
+    if (typeof value !== "string") {
+      throw new TypeError(`Invalid stored ${name}`);
+    }
     return value;
   };
   const optional = (name: string): string | null =>
-    row[name] == null ? null : text(name);
-  if (row.visibility !== "public" && row.visibility !== "restricted")
+    row[name] === null || row[name] === undefined ? null : text(name);
+  if (row.visibility !== "public" && row.visibility !== "restricted") {
     throw new Error("Invalid stored visibility");
+  }
   return {
-    id: text("id"),
-    claimType: text("claim_type"),
-    subject: text("subject"),
-    claim: object(JSON.parse(text("claim")), "stored claim"),
-    issuedAt: text("issued_at"),
-    expiresAt: text("expires_at"),
-    revokedAt: optional("revoked_at"),
-    visibility: row.visibility,
-    jws: text("jws"),
-    uri: optional("uri"),
     cid: optional("cid"),
+    claim: object(JSON.parse(text("claim")), "stored claim"),
+    claimType: text("claim_type"),
+    expiresAt: text("expires_at"),
+    id: text("id"),
+    issuedAt: text("issued_at"),
+    jws: text("jws"),
+    revokedAt: optional("revoked_at"),
+    subject: text("subject"),
+    uri: optional("uri"),
+    visibility: row.visibility,
   };
 }

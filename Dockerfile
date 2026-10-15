@@ -2,18 +2,20 @@ FROM node:24.17.0-bookworm-slim@sha256:862263c612aa437e3037674b85419622a9d93bff8
 RUN npm install --global pnpm@11.8.0
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY vendor ./vendor
 RUN pnpm install --frozen-lockfile
 COPY src ./src
 COPY verify ./verify
 COPY public ./public
 COPY scripts ./scripts
-RUN pnpm run build
+RUN pnpm run build && pnpm prune --prod
 
 FROM node:24.17.0-bookworm-slim@sha256:862263c612aa437e3037674b85419622a9d93bff80aa1eee5398dfe686375532
 WORKDIR /app
-# Zero runtime dependencies. No compiler or issuer source in the runtime image.
+# No compiler or issuer source in the runtime image.
 COPY package.json ./
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
 COPY claim-types ./claim-types
 RUN mkdir -p /data && chown node:node /data
 USER node

@@ -1,12 +1,10 @@
 # Writing an adapter
 
-An adapter is the only file an organisation has to write. It answers one
-question, from the organisation's own systems:
+An adapter is the only file an organisation has to write. It answers one question, from the organisation's own systems:
 
 > Is this fact true about this account, right now?
 
-It never signs, never publishes, never decides who may ask, and never sees the
-signing key. If it cannot answer, it says so, and nothing is issued.
+It never signs, never publishes, never decides who may ask, and never sees the signing key. If it cannot answer, it says so, and nothing is issued.
 
 ```ts
 import type { AdapterRequest, AdapterAnswer } from "../types.js";
@@ -38,14 +36,9 @@ export default {
 
 Rules the core enforces around you:
 
-- The returned `claim` is validated against the claim type's schema. A claim
-  that does not match is not issued, however confident the adapter was.
+- The returned `claim` is validated against the claim type's schema. A claim that does not match is not issued, however confident the adapter was.
 - `maxLifetimeDays` can only shorten the claim type's own limit, never extend it.
-- `granted: false` must carry a `reason` that is safe to show the person asking.
-  Do not put evidence, case details or personal identifiers in it.
-- The adapter is called only after the issuance policy has allowed the
-  requester. It is not a place to implement access control.
+- `granted: false` must carry a `reason` that is safe to show the person asking. Do not put evidence, case details or personal identifiers in it.
+- The adapter is called only after the issuance policy has allowed the requester. It is not a place to implement access control.
 
-Keep the adapter free of AT Protocol, signing and HTTP concerns. Replacing the
-synthetic adapter with a real integration must not require touching anything
-else in this repository.
+Keep the adapter free of AT Protocol, signing and HTTP concerns. Replacing the synthetic adapter with a real integration must not require touching anything else in this repository.

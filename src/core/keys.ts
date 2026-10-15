@@ -1,9 +1,10 @@
-import type { IssuerOptions } from "../types.ts";
-import type { TrustPolicy } from "../../verify/types.ts";
 // The signing key is the organisation's authority. It is generated once, kept
 // private to the service, and never leaves it; only the public half is served.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+import type { TrustPolicy } from "../../verify/types.ts";
+import type { IssuerOptions } from "../types.ts";
 import { generateKeyPair, importSigningKey, publicPart } from "./sign.ts";
 
 export async function loadSigner({
@@ -15,21 +16,25 @@ export async function loadSigner({
   kid?: string;
   privateJwk?: unknown;
 }) {
-  if (privateJwk)
+  if (privateJwk) {
     return importSigningKey(
-      typeof privateJwk === "string" ? JSON.parse(privateJwk) : privateJwk,
+      typeof privateJwk === "string" ? JSON.parse(privateJwk) : privateJwk
     );
-  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  }
+  mkdirSync(directory, { mode: 0o700, recursive: true });
   const file = join(directory, "signing-key.json");
   try {
-    return await importSigningKey(JSON.parse(readFileSync(file, "utf8")));
+    return await importSigningKey(JSON.parse(readFileSync(file, "utf-8")));
   } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ENOENT"))
+    if (
+      !(error instanceof Error && "code" in error && error.code === "ENOENT")
+    ) {
       throw error;
+    }
     const generated = await generateKeyPair(kid);
     writeFileSync(file, JSON.stringify(generated.privateJwk, null, 2), {
-      mode: 0o600,
       flag: "wx",
+      mode: 0o600,
     });
     return generated;
   }
@@ -50,21 +55,21 @@ export function issuerDocument({
   "issuer" | "name" | "signer" | "claimTypes" | "repo" | "contact" | "demo"
 >) {
   return {
-    version: 1,
     issuer,
     name,
+    version: 1,
     ...(demo ? { demo: true } : {}),
     ...(contact ? { contact } : {}),
     keys: [publicPart(signer.privateJwk)],
     ...(repo ? { atprotoRepo: repo } : {}),
-    statusEndpoint: new URL("/status/", new URL(issuer).origin).href,
-    queryEndpoint: new URL("/query", new URL(issuer).origin).href,
     claimTypes: Object.values(claimTypes).map((d) => ({
+      description: d.description,
       id: d.id,
       label: d.label,
       visibility: d.visibility,
-      description: d.description,
     })),
+    queryEndpoint: new URL("/query", new URL(issuer).origin).href,
+    statusEndpoint: new URL("/status/", new URL(issuer).origin).href,
   };
 }
 
@@ -79,7 +84,6 @@ export function suggestedTrustPolicy({
   "issuer" | "signer" | "claimTypes" | "repo"
 >): TrustPolicy {
   return {
-    version: 1,
     maxClockSkewSeconds: 60,
     requireStatusCheck: true,
     trust: [
@@ -90,5 +94,6 @@ export function suggestedTrustPolicy({
         ...(repo ? { repo } : {}),
       },
     ],
+    version: 1,
   };
 }

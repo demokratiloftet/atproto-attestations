@@ -1,1 +1,1 @@
-allowBuilds: {}
+allowBuilds: { core-js: false }

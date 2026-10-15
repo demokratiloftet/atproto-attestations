@@ -1,97 +1,198 @@
 <!doctype html>
 <html lang="nb">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Utstederpult</title>
-<link rel="stylesheet" href="/console.css">
-<script src="/console.js" type="module"></script>
-</head>
-<body>
-<header class="identity">
-  <p class="chip">Demoutsteder med syntetiske data</p>
-  <h1 id="issuer-name">Kobler til utstederen</h1>
-  <dl class="identity-facts">
-    <div><dt>Utstederadresse</dt><dd class="id" id="issuer-url">–</dd></div>
-    <div><dt>Signeringsnøkkel</dt><dd class="id" id="issuer-key">–</dd></div>
-    <div><dt>Publisering</dt><dd id="issuer-publish">–</dd></div>
-  </dl>
-</header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Utstederpult</title>
+    <link rel="stylesheet" href="/console.css" />
+    <script src="/console.js" type="module"></script>
+  </head>
+  <body>
+    <header class="identity">
+      <p class="chip">Demoutsteder med syntetiske data</p>
+      <h1 id="issuer-name">Kobler til utstederen</h1>
+      <dl class="identity-facts">
+        <div>
+          <dt>Utstederadresse</dt>
+          <dd class="id" id="issuer-url">–</dd>
+        </div>
+        <div>
+          <dt>Signeringsnøkkel</dt>
+          <dd class="id" id="issuer-key">–</dd>
+        </div>
+        <div>
+          <dt>Publisering</dt>
+          <dd id="issuer-publish">–</dd>
+        </div>
+      </dl>
+    </header>
 
-<main>
-  <aside>
-    <section>
-      <h2>Kontoer</h2>
-      <ul id="people" class="people"><li class="empty">Ingen kontoer ennå.</li></ul>
-      <button id="seed" class="quiet">Legg inn demokontoer</button>
-    </section>
-    <section>
-      <h2>Attestasjonstyper</h2>
-      <ul id="claim-types" class="types"></ul>
-    </section>
-  </aside>
+    <main>
+      <aside>
+        <section>
+          <h2>Kontoer</h2>
+          <ul id="people" class="people">
+            <li class="empty">Ingen kontoer ennå.</li>
+          </ul>
+          <button id="seed" class="quiet">Legg inn demokontoer</button>
+        </section>
+        <section>
+          <h2>Attestasjonstyper</h2>
+          <ul id="claim-types" class="types"></ul>
+        </section>
+      </aside>
 
-  <div class="desk">
-    <section class="panel">
-      <h2>Utsted en attestasjon</h2>
-      <p class="lede">Utstederen kontrollerer selv om påstanden stemmer. Den som spør må ha lov til å spørre.</p>
-      <form id="issue-form" class="fields">
-        <label>Attestasjonstype<select name="claimType" id="issue-type" required></select></label>
-        <label>Gjelder kontoen<select name="subject" id="issue-subject" required></select></label>
-        <label>Feltverdier<input name="request" id="issue-request" placeholder="orgId=fjord" autocomplete="off"></label>
-        <label>Spurt av<select name="requesterDid" id="issue-requester"><option value="">Kontoen selv</option></select></label>
-        <button class="primary">Utsted</button>
-      </form>
-      <p id="issue-note" class="note" hidden></p>
-    </section>
+      <div class="desk">
+        <section class="panel">
+          <h2>Utsted en attestasjon</h2>
+          <p class="lede">
+            Utstederen kontrollerer selv om påstanden stemmer. Den som spør må
+            ha lov til å spørre.
+          </p>
+          <form id="issue-form" class="fields">
+            <label
+              >Attestasjonstype<select
+                name="claimType"
+                id="issue-type"
+                required
+              ></select
+            ></label>
+            <label
+              >Gjelder kontoen<select
+                name="subject"
+                id="issue-subject"
+                required
+              ></select
+            ></label>
+            <label
+              >Feltverdier<input
+                name="request"
+                id="issue-request"
+                placeholder="orgId=fjord"
+                autocomplete="off"
+            /></label>
+            <label
+              >Spurt av<select name="requesterDid" id="issue-requester">
+                <option value="">Kontoen selv</option>
+              </select></label
+            >
+            <button class="primary">Utsted</button>
+          </form>
+          <p id="issue-note" class="note" hidden></p>
+        </section>
 
-    <section class="panel">
-      <div class="panel-head">
-        <h2>Utstedt</h2>
-        <label class="inline">Vis for<select id="held-subject"></select></label>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Utstedt</h2>
+            <label class="inline"
+              >Vis for<select id="held-subject"></select
+            ></label>
+          </div>
+          <ul id="held" class="held">
+            <li class="empty">Velg en konto.</li>
+          </ul>
+        </section>
+
+        <section class="sealed">
+          <h2>Begrenset innsyn</h2>
+          <p class="lede">
+            Politiattesten publiseres ingen steder. Den besvares bare til en
+            leder i det laget attesten gjelder, og svaret er gyldig, mangler
+            eller utløpt. Hvert spørsmål havner i journalen.
+          </p>
+          <form id="query-form" class="fields">
+            <label
+              >Spør om kontoen<select
+                name="subject"
+                id="query-subject"
+                required
+              ></select
+            ></label>
+            <label
+              >På vegne av laget<input
+                name="orgId"
+                id="query-org"
+                value="fjord"
+                required
+                autocomplete="off"
+            /></label>
+            <label
+              >Den som spør<select
+                name="requesterDid"
+                id="query-requester"
+                required
+              ></select
+            ></label>
+            <button class="seal">Spør utstederen</button>
+          </form>
+          <output id="answer" class="answer" hidden></output>
+          <details class="aside-form">
+            <summary>Registrer en attest for demonstrasjonen</summary>
+            <p class="lede">
+              Politiattesten kan bare utstedes av klienten
+              <code>politiet-backend</code>, med sin egen nøkkel. Pultens
+              vanlige nøkkel holder ikke, og det er hele poenget.
+            </p>
+            <form id="attest-form" class="fields">
+              <label
+                >Gjelder kontoen<select
+                  name="subject"
+                  id="attest-subject"
+                  required
+                ></select
+              ></label>
+              <label
+                >For laget<input
+                  name="orgId"
+                  id="attest-org"
+                  value="fjord"
+                  required
+                  autocomplete="off"
+              /></label>
+              <label
+                >Politiets klientnøkkel<input
+                  name="token"
+                  type="password"
+                  required
+                  autocomplete="off"
+                  placeholder="local-demo-politiet"
+              /></label>
+              <button class="quiet">Registrer attest</button>
+            </form>
+          </details>
+        </section>
+
+        <section class="panel">
+          <h2>Journal</h2>
+          <p class="lede">
+            Hver utstedelse, tilbaketrekking og hvert spørsmål, også de som ble
+            avvist.
+          </p>
+          <ol id="audit" class="audit">
+            <li class="empty">Ingenting er gjort ennå.</li>
+          </ol>
+        </section>
       </div>
-      <ul id="held" class="held"><li class="empty">Velg en konto.</li></ul>
-    </section>
+    </main>
 
-    <section class="sealed">
-      <h2>Begrenset innsyn</h2>
-      <p class="lede">Politiattesten publiseres ingen steder. Den besvares bare til en leder i det laget attesten gjelder, og svaret er gyldig, mangler eller utløpt. Hvert spørsmål havner i journalen.</p>
-      <form id="query-form" class="fields">
-        <label>Spør om kontoen<select name="subject" id="query-subject" required></select></label>
-        <label>På vegne av laget<input name="orgId" id="query-org" value="fjord" required autocomplete="off"></label>
-        <label>Den som spør<select name="requesterDid" id="query-requester" required></select></label>
-        <button class="seal">Spør utstederen</button>
+    <dialog id="key-dialog">
+      <form method="dialog" id="key-form">
+        <h2>Klientnøkkel</h2>
+        <p>
+          Pulten snakker med utstederen som en registrert klient. I en lokal
+          sandkasse er nøkkelen <code>local-demo-only</code>.
+        </p>
+        <label
+          >Nøkkel<input
+            name="token"
+            type="password"
+            required
+            autocomplete="current-password"
+        /></label>
+        <button class="primary" value="save">Koble til</button>
       </form>
-      <output id="answer" class="answer" hidden></output>
-      <details class="aside-form">
-        <summary>Registrer en attest for demonstrasjonen</summary>
-        <p class="lede">Politiattesten kan bare utstedes av klienten <code>politiet-backend</code>, med sin egen nøkkel. Pultens vanlige nøkkel holder ikke, og det er hele poenget.</p>
-        <form id="attest-form" class="fields">
-          <label>Gjelder kontoen<select name="subject" id="attest-subject" required></select></label>
-          <label>For laget<input name="orgId" id="attest-org" value="fjord" required autocomplete="off"></label>
-          <label>Politiets klientnøkkel<input name="token" type="password" required autocomplete="off" placeholder="local-demo-politiet"></label>
-          <button class="quiet">Registrer attest</button>
-        </form>
-      </details>
-    </section>
+    </dialog>
 
-    <section class="panel">
-      <h2>Journal</h2>
-      <p class="lede">Hver utstedelse, tilbaketrekking og hvert spørsmål, også de som ble avvist.</p>
-      <ol id="audit" class="audit"><li class="empty">Ingenting er gjort ennå.</li></ol>
-    </section>
-  </div>
-</main>
-
-<dialog id="key-dialog">
-  <form method="dialog" id="key-form">
-    <h2>Klientnøkkel</h2>
-    <p>Pulten snakker med utstederen som en registrert klient. I en lokal sandkasse er nøkkelen <code>local-demo-only</code>.</p>
-    <label>Nøkkel<input name="token" type="password" required autocomplete="current-password"></label>
-    <button class="primary" value="save">Koble til</button>
-  </form>
-</dialog>
-
-<p id="toast" role="status" hidden></p>
-</body>
+    <p id="toast" role="status" hidden></p>
+  </body>
 </html>

@@ -1,0 +1,106 @@
+diff --git a/deploy/entrypoint.sh b/deploy/entrypoint.sh
+index dac902b..519acb4 100644
+--- a/deploy/entrypoint.sh
++++ b/deploy/entrypoint.sh
+@@ -15,7 +15,7 @@ if [ -n "${VERIFICATION_TLS_DIRECTORY:-}" ]; then
+   iptables -A OUTPUT -d 10.249.90.27/32 -p tcp --dport 3012 -j ACCEPT
+ fi
+ if [ -n "${HACKATHON_TLS_DIRECTORY:-}" ]; then
+-  for app_ip in 10.249.99.11 10.249.99.12 10.249.99.13; do
++  for app_ip in 10.249.99.11 10.249.99.12 10.249.99.13 10.249.99.14; do
+     iptables -A OUTPUT -d "$app_ip/32" -p tcp --dport 3000 -j ACCEPT
+   done
+ fi
+diff --git a/deploy/hackathon.ts b/deploy/hackathon.ts
+index 34f10ce..7246e6c 100644
+--- a/deploy/hackathon.ts
++++ b/deploy/hackathon.ts
+@@ -11,6 +11,7 @@ export const hackathonTargets: Readonly<Record<string, string>> = Object.freeze(
+     [`app-protospace.${domain}`]: "http://10.249.99.11:3000",
+     [`sports-publisher.${domain}`]: "http://10.249.99.12:3000",
+     [`sports-viewer.${domain}`]: "http://10.249.99.13:3000",
++    [`tilknytning.${domain}`]: "http://10.249.99.14:3000",
+   },
+ );
+ 
+@@ -37,10 +38,33 @@ export function hackathonAllowed(host: string, method?: string, raw?: string) {
+       /^\/assets\/[a-zA-Z0-9_-]+\.(js|css|svg|png|woff2)$/.test(path)
+     )
+       return true;
++    if (host === `tilknytning.${domain}`)
++      return (
++        ["/api/state", "/api/demo", "/api/trust", "/api/credential"].includes(
++          path,
++        ) || /^\/status\/[a-zA-Z0-9-]+$/.test(path)
++      );
+     return host === `app-protospace.${domain}`
+       ? ["/api/hello", "/api/sandbox"].includes(path)
+       : ["/api/demo", "/api/event"].includes(path);
+   }
++  if (host === `tilknytning.${domain}`)
++    return (
++      method === "POST" &&
++      [
++        "/api/login",
++        "/api/logout",
++        "/api/proposals",
++        "/api/proposals/approve",
++        "/api/proposals/change",
++        "/api/proposals/decline",
++        "/api/proposals/revoke",
++        "/api/proposals/retry",
++        "/api/grants",
++        "/api/grants/revoke",
++        "/api/events",
++      ].includes(path)
++    );
+   return (
+     host === `sports-publisher.${domain}` &&
+     method === "POST" &&
+diff --git a/test/hackathon.test.ts b/test/hackathon.test.ts
+index ebc41db..03531d7 100644
+--- a/test/hackathon.test.ts
++++ b/test/hackathon.test.ts
+@@ -265,3 +265,42 @@ test("public proxy preserves app cookies and origin, strips injected routing/aut
+   );
+   assert.equal(legacy, 1);
+ });
++
++test("affiliation pilot exposes only reviewed application routes", () => {
++  const host = "tilknytning.hackaton.demokratiloftet.no";
++  for (const path of [
++    "/api/state",
++    "/api/demo",
++    "/api/trust",
++    "/api/credential?id=abc",
++    "/status/abc-123",
++  ])
++    assert(hackathonAllowed(host, "GET", path));
++  for (const path of [
++    "/api/login",
++    "/api/logout",
++    "/api/proposals",
++    "/api/proposals/approve",
++    "/api/proposals/change",
++    "/api/proposals/decline",
++    "/api/proposals/revoke",
++    "/api/proposals/retry",
++    "/api/grants",
++    "/api/grants/revoke",
++    "/api/events",
++  ])
++    assert(hackathonAllowed(host, "POST", path));
++  for (const path of [
++    "/issue",
++    "/revoke",
++    "/audit",
++    "/demo/enrol",
++    "/query",
++    "/api/reset",
++    "/xrpc/com.atproto.repo.putRecord",
++  ])
++    for (const method of ["GET", "POST"])
++      assert(!hackathonAllowed(host, method, path));
++  assert(!hackathonAllowed(viewer, "GET", "/api/trust"));
++  assert(!hackathonAllowed(publisher, "POST", "/api/grants"));
++});

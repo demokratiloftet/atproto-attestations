@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "no.demokratiloftet.affiliation.acceptance",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["affiliation", "subject", "revision", "createdAt"],
+        "properties": {
+          "affiliation": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "subject": {
+            "type": "string",
+            "format": "did"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

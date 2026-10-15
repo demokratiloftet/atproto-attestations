@@ -2,10 +2,12 @@
 import { RECORD_TYPE } from "../../verify/record.ts";
 import { object } from "../../verify/values.ts";
 import type { Publisher } from "../types.ts";
+
 export class PdsError extends Error {
+  override name = "PdsError";
   constructor(
     public readonly code: string,
-    public readonly status: number,
+    public readonly status: number
   ) {
     super(`PDS: ${code}`);
   }
@@ -28,52 +30,57 @@ export function createAtprotoPublisher({
   collection = RECORD_TYPE,
   fetchImpl = fetch,
 }: Options): Publisher {
-  if (!service || !identifier || !password)
+  if (!service || !identifier || !password) {
     throw new Error("The AT Protocol publisher needs service and credentials");
+  }
   const origin = new URL(service);
   if (
     !["http:", "https:"].includes(origin.protocol) ||
     origin.username ||
     origin.password
-  )
+  ) {
     throw new Error("The AT Protocol service must be an HTTP(S) origin");
+  }
   let session: Session | undefined;
   const text = (data: Record<string, unknown>, key: string): string => {
     const value = data[key];
-    if (typeof value !== "string" || !value)
+    if (typeof value !== "string" || !value) {
       throw new Error(`PDS response missing ${key}`);
+    }
     return value;
   };
   async function rpc(
     method: string,
     data: Record<string, unknown>,
     token?: string,
-    write = false,
+    write = false
   ) {
     const url = new URL(`/xrpc/${method}`, origin);
-    if (!write)
+    if (!write) {
       url.search = new URLSearchParams(
-        Object.entries(data).map(([key, value]) => [key, String(value)]),
+        Object.entries(data).map(([key, value]) => [key, String(value)])
       ).toString();
+    }
     const response = await fetchImpl(url, {
-      method: write ? "POST" : "GET",
-      redirect: "error",
-      signal: AbortSignal.timeout(8000),
       headers: {
         ...(write && { "content-type": "application/json" }),
         ...(token && { authorization: `Bearer ${token}` }),
       },
+      method: write ? "POST" : "GET",
+      redirect: "error",
+      signal: AbortSignal.timeout(8000),
       ...(write && { body: JSON.stringify(data) }),
     });
     const result = object(
       await response.json().catch(() => ({})),
-      "PDS response",
+      "PDS response"
     );
-    if (!response.ok)
+    if (!response.ok) {
       throw new PdsError(
         typeof result.error === "string" ? result.error : "Unavailable",
-        response.status,
+        response.status
       );
+    }
     return result;
   }
   const login = async (): Promise<Session> => {
@@ -81,16 +88,16 @@ export function createAtprotoPublisher({
       "com.atproto.server.createSession",
       { identifier, password },
       undefined,
-      true,
+      true
     );
     session = {
-      did: text(result, "did"),
       accessJwt: text(result, "accessJwt"),
+      did: text(result, "did"),
     };
     return session;
   };
   async function authenticated<T>(
-    run: (session: Session) => Promise<T>,
+    run: (session: Session) => Promise<T>
   ): Promise<T> {
     const current = session ?? (await login());
     try {
@@ -99,48 +106,52 @@ export function createAtprotoPublisher({
       if (
         !(error instanceof PdsError) ||
         (error.status !== 401 && error.status !== 400)
-      )
+      ) {
         throw error;
+      }
       return run(await login());
     }
   }
   return {
-    id: "atproto",
     async describe() {
       return {
         repo: text(
           await rpc("com.atproto.repo.describeRepo", { repo: identifier }),
-          "did",
+          "did"
         ),
         service: origin.href,
       };
     },
+    id: "atproto",
     async publish(record) {
       const result = await authenticated((s) =>
         rpc(
           "com.atproto.repo.createRecord",
-          { repo: s.did, collection, record, validate: false },
+          { collection, record, repo: s.did, validate: false },
           s.accessJwt,
-          true,
-        ),
+          true
+        )
       );
-      return { uri: text(result, "uri"), cid: text(result, "cid") };
+      return { cid: text(result, "cid"), uri: text(result, "uri") };
     },
     async remove(uri) {
       const rkey = uri.split("/").at(-1);
-      if (!rkey) return {};
+      if (!rkey) {
+        return {};
+      }
       try {
         return await authenticated((s) =>
           rpc(
             "com.atproto.repo.deleteRecord",
-            { repo: s.did, collection, rkey },
+            { collection, repo: s.did, rkey },
             s.accessJwt,
-            true,
-          ),
+            true
+          )
         );
       } catch (error) {
-        if (error instanceof PdsError && error.code === "RecordNotFound")
+        if (error instanceof PdsError && error.code === "RecordNotFound") {
           return {};
+        }
         throw error;
       }
     },

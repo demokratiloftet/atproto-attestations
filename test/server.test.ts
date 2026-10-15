@@ -1,13 +1,14 @@
-import type { ChildProcess } from "node:child_process";
-import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
-import { request } from "node:http";
 import { mkdtempSync } from "node:fs";
+import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { verifyAttestation } from "../verify/index.ts";
+import { test, before, after } from "node:test";
+
 import { loadClaimTypes } from "../src/core/registry.ts";
+import { verifyAttestation } from "../verify/index.ts";
 
 const PORT = 3999;
 const base = `http://127.0.0.1:${PORT}`;
@@ -22,14 +23,14 @@ const call = (
     method = "GET",
     token = "test-client-token-0123456789",
     json,
-  }: { method?: string; token?: string | null; json?: unknown } = {},
+  }: { method?: string; token?: string | null; json?: unknown } = {}
 ) =>
   fetch(`${base}${path}`, {
-    method,
     headers: {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(json !== undefined ? { "content-type": "application/json" } : {}),
     },
+    method,
     ...(json !== undefined ? { body: JSON.stringify(json) } : {}),
   });
 
@@ -37,43 +38,47 @@ before(async () => {
   child = spawn(process.execPath, ["dist/src/server.js"], {
     env: {
       ...process.env,
-      PORT: String(PORT),
-      ISSUER_ENV: "local",
-      ISSUER_ORIGIN: base,
-      ISSUER_DATA_DIR: mkdtempSync(join(tmpdir(), "attest-server-")),
       ISSUER_CLIENTS_JSON: JSON.stringify([
         {
           id: "calendar",
-          token: "test-client-token-0123456789",
           scopes: ["issue", "query", "revoke", "admin"],
+          token: "test-client-token-0123456789",
         },
         {
           id: "reader",
-          token: "reader-token-0123456789012345",
           scopes: ["query"],
+          token: "reader-token-0123456789012345",
         },
         {
           id: "politiet-backend",
-          token: "politiet-token-01234567890123",
           scopes: ["issue"],
+          token: "politiet-token-01234567890123",
         },
       ]),
+      ISSUER_DATA_DIR: mkdtempSync(join(tmpdir(), "attest-server-")),
+      ISSUER_ENV: "local",
+      ISSUER_ORIGIN: base,
+      PORT: String(PORT),
     },
     stdio: ["ignore", "pipe", "inherit"],
   });
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 100; i += 1) {
     try {
-      if ((await fetch(`${base}/health`)).ok) return;
+      if ((await fetch(`${base}/health`)).ok) {
+        return;
+      }
     } catch {
       /* still starting */
     }
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100);
+    });
   }
   throw new Error("The issuer did not start");
 });
 after(() => child?.kill());
 
-test("the key document and trust policy are public; everything else needs a client", async () => {
+void test("the key document and trust policy are public; everything else needs a client", async () => {
   const document = await (
     await call("/.well-known/attestation-issuer.json", { token: null })
   ).json();
@@ -81,176 +86,175 @@ test("the key document and trust policy are public; everything else needs a clie
   assert.equal(
     document.keys[0].d,
     undefined,
-    "the private key must never be served",
+    "the private key must never be served"
   );
   assert.equal(document.demo, true);
   assert.equal(
     (await (await call("/trust-policy.json", { token: null })).json()).trust
       .length,
-    1,
+    1
   );
   assert.equal(
-    (await call("/issue", { method: "POST", token: null, json: {} })).status,
-    401,
+    (await call("/issue", { json: {}, method: "POST", token: null })).status,
+    401
   );
   assert.equal(
     (
       await call("/issue", {
+        json: {},
         method: "POST",
         token: "wrong-token-000000000000000",
-        json: {},
       })
     ).status,
-    401,
+    401
   );
 });
 
-test("a client may only do what its scopes allow", async () => {
+void test("a client may only do what its scopes allow", async () => {
   const forbidden = await call("/issue", {
+    json: { claimType: "no.nif.identityLinked", subject: COACH },
     method: "POST",
     token: "reader-token-0123456789012345",
-    json: { claimType: "no.nif.identityLinked", subject: COACH },
   });
   assert.equal(forbidden.status, 403);
-  assert.match((await forbidden.json()).error, /issue/);
+  assert.match((await forbidden.json()).error, /issue/u);
 });
 
-test("the full journey over HTTP: enrol, issue, verify from the published policy, query, revoke", async () => {
+void test("the full journey over HTTP: enrol, issue, verify from the published policy, query, revoke", async () => {
   for (const [did, facts] of [
     [
       LEADER,
       {
-        identity: { assuranceLevel: "substantial", provider: "demo-idp" },
         clubs: [{ orgId: "fjord", orgName: "Fjord idrettslag", role: "leder" }],
+        identity: { assuranceLevel: "substantial", provider: "demo-idp" },
       },
     ],
     [
       COACH,
       {
-        identity: { assuranceLevel: "substantial", provider: "demo-idp" },
+        attests: [{ orgId: "fjord" }],
         clubs: [
           { orgId: "fjord", orgName: "Fjord idrettslag", role: "trener" },
         ],
+        identity: { assuranceLevel: "substantial", provider: "demo-idp" },
         licences: [{ discipline: "svomming", level: "instruktor-2" }],
-        attests: [{ orgId: "fjord" }],
       },
     ],
-  ])
+  ]) {
     assert.equal(
       (
         await call("/demo/enrol", {
+          json: { facts, subject: did },
           method: "POST",
-          json: { subject: did, facts },
         })
       ).status,
-      200,
+      200
     );
+  }
 
   const link = async (did: string) =>
     (
       await (
         await call("/issue", {
-          method: "POST",
           json: {
             claimType: "no.nif.identityLinked",
-            subject: did,
             requesterDid: did,
+            subject: did,
           },
+          method: "POST",
         })
       ).json()
     ).record;
   const leaderLink = await link(LEADER);
   const coachLink = await link(COACH);
-
   const leaderRole = await (
     await call("/issue", {
-      method: "POST",
       json: {
         claimType: "no.nif.clubRole",
-        subject: LEADER,
-        requesterDid: LEADER,
         request: { orgId: "fjord" },
+        requesterDid: LEADER,
+        subject: LEADER,
         subjectAttestations: [leaderLink],
       },
+      method: "POST",
     })
   ).json();
   assert.equal(leaderRole.attestation.claim.role, "leder");
 
   const licence = await (
     await call("/issue", {
-      method: "POST",
       json: {
         claimType: "no.nif.instructorLicence",
-        subject: COACH,
-        requesterDid: COACH,
         request: { discipline: "svomming" },
+        requesterDid: COACH,
+        subject: COACH,
         subjectAttestations: [coachLink],
       },
+      method: "POST",
     })
   ).json();
-
   // An application verifies using only what the issuer publishes.
   const trustPolicy = await (
     await call("/trust-policy.json", { token: null })
   ).json();
   const fetchStatus = async (url: string) =>
-    (await (await fetch(new URL(url).pathname.replace(/^/, base))).json()).jws;
+    (await (await fetch(new URL(url).pathname.replace(/^/u, base))).json()).jws;
   const verdict = await verifyAttestation(licence.record, {
-    trustPolicy,
     claimTypes,
+    expect: { claim: { discipline: "svomming" }, subject: COACH },
     fetchStatus,
-    expect: { subject: COACH, claim: { discipline: "svomming" } },
+    trustPolicy,
   });
   assert.equal(verdict.valid, true, verdict.reason);
 
   // The restricted claim names the client that may issue it, so the calendar
   // cannot issue a police certificate however well it authenticates people.
   const wrongClient = await call("/issue", {
-    method: "POST",
     json: {
       claimType: "no.politiet.attest",
-      subject: COACH,
       request: { orgId: "fjord" },
+      subject: COACH,
       subjectAttestations: [coachLink],
     },
+    method: "POST",
   });
   assert.equal(wrongClient.status, 403);
   const issued = await call("/issue", {
-    method: "POST",
-    token: "politiet-token-01234567890123",
     json: {
       claimType: "no.politiet.attest",
-      subject: COACH,
       request: { orgId: "fjord" },
+      subject: COACH,
       subjectAttestations: [coachLink],
     },
+    method: "POST",
+    token: "politiet-token-01234567890123",
   });
   assert.equal(issued.status, 201);
   assert.equal(
     (await issued.json()).uri,
     undefined,
-    "a restricted claim is never published",
+    "a restricted claim is never published"
   );
   const asLeader = await call("/query", {
-    method: "POST",
     json: {
+      attestations: [leaderRole.record],
       claimType: "no.politiet.attest",
-      subject: COACH,
       request: { orgId: "fjord" },
       requesterDid: LEADER,
-      attestations: [leaderRole.record],
+      subject: COACH,
     },
+    method: "POST",
   });
   assert.equal((await asLeader.json()).answer, "valid");
 
   const asStranger = await call("/query", {
-    method: "POST",
     json: {
       claimType: "no.politiet.attest",
-      subject: COACH,
       request: { orgId: "fjord" },
       requesterDid: COACH,
+      subject: COACH,
     },
+    method: "POST",
   });
   assert.equal(asStranger.status, 403);
 
@@ -258,37 +262,37 @@ test("the full journey over HTTP: enrol, issue, verify from the published policy
     (
       await (
         await call("/revoke", {
-          method: "POST",
           json: { id: licence.attestation.id, requesterDid: COACH },
+          method: "POST",
         })
       ).json()
     ).revoked,
-    true,
+    true
   );
-  const after = await verifyAttestation(licence.record, {
-    trustPolicy,
+  const afterRevoke = await verifyAttestation(licence.record, {
     claimTypes,
     fetchStatus,
+    trustPolicy,
   });
-  assert.equal(after.reason, "revoked");
+  assert.equal(afterRevoke.reason, "revoked");
 
   const audit = await (await call("/audit")).json();
   assert.equal(
     audit.entries.some(
       (e: { action: string; outcome: string }) =>
-        e.action === "query" && e.outcome === "denied",
+        e.action === "query" && e.outcome === "denied"
     ),
-    true,
+    true
   );
 });
 
-test("the status of an unknown attestation is answered, not leaked as a 404", async () => {
+void test("the status of an unknown attestation is answered, not leaked as a 404", async () => {
   const response = await call("/status/does-not-exist", { token: null });
   assert.equal(response.status, 200);
   assert.equal(typeof (await response.json()).jws, "string");
 });
 
-test("refuses rebinding and foreign browser origins even with a valid token", async () => {
+void test("refuses rebinding and foreign browser origins even with a valid token", async () => {
   for (const headers of [
     { host: "attacker.invalid" },
     { origin: "https://attacker.invalid" },
@@ -305,7 +309,7 @@ test("refuses rebinding and foreign browser origins even with a valid token", as
         (response) => {
           response.resume();
           resolve(response.statusCode);
-        },
+        }
       );
       req.on("error", reject);
       req.end();
@@ -314,15 +318,15 @@ test("refuses rebinding and foreign browser origins even with a valid token", as
   }
 });
 
-test("malformed request objects, evidence and demo facts fail before writes", async () => {
+void test("malformed request objects, evidence and demo facts fail before writes", async () => {
   for (const json of [
     [],
     null,
-    { claimType: "no.nif.identityLinked", subject: COACH, request: [] },
+    { claimType: "no.nif.identityLinked", request: [], subject: COACH },
     {
+      attestations: "token",
       claimType: "no.nif.identityLinked",
       subject: COACH,
-      attestations: "token",
     },
     {
       claimType: "no.nif.identityLinked",
@@ -330,19 +334,19 @@ test("malformed request objects, evidence and demo facts fail before writes", as
       subjectAttestations: {},
     },
   ]) {
-    assert.equal((await call("/issue", { method: "POST", json })).status, 400);
+    assert.equal((await call("/issue", { json, method: "POST" })).status, 400);
   }
   assert.equal(
-    (await call("/revoke", { method: "POST", json: {} })).status,
-    400,
+    (await call("/revoke", { json: {}, method: "POST" })).status,
+    400
   );
   assert.equal(
     (
       await call("/demo/enrol", {
+        json: { facts: { clubs: "not-an-array" }, subject: COACH },
         method: "POST",
-        json: { subject: COACH, facts: { clubs: "not-an-array" } },
       })
     ).status,
-    400,
+    400
   );
 });

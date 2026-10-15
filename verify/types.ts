@@ -51,6 +51,8 @@ export interface Jwk extends webcrypto.JsonWebKey {
 export interface TrustEntry {
   issuer: string;
   claimTypes: string[];
+  /** Literal constraints on signed claims, e.g. the organisation represented. */
+  where?: Claim;
   keys?: Jwk[];
   repo?: string;
 }

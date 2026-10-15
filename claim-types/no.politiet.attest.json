@@ -5,22 +5,35 @@
   "description": "SYNTETISK DEMONSTRASJON av begrenset innsyn. Attestasjonen publiseres aldri i et apent register. Den besvares bare pa sporsmal fra en leder i det laget attesten gjelder, og svaret er kun gyldig, mangler eller utlopt.",
   "visibility": "restricted",
   "maxLifetimeDays": 1095,
-  "subjectAssurance": { "claimType": "no.nif.identityLinked", "where": { "assuranceLevel": "substantial" } },
+  "subjectAssurance": {
+    "claimType": "no.nif.identityLinked",
+    "where": { "assuranceLevel": "substantial" }
+  },
   "claim": {
     "type": "object",
     "additionalProperties": false,
     "required": ["orgId", "purpose"],
     "properties": {
-      "orgId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,39}$", "description": "Laget attesten er levert til. En leder i et annet lag far ikke svar." },
+      "orgId": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+        "description": "Laget attesten er levert til. En leder i et annet lag far ikke svar."
+      },
       "purpose": { "type": "string", "enum": ["politiattest-kontroll"] }
     }
   },
-  "issuance": { "requesters": [{ "kind": "client", "client": "politiet-backend" }] },
+  "issuance": {
+    "requesters": [{ "kind": "client", "client": "politiet-backend" }]
+  },
   "disclosure": {
     "mode": "query-only",
     "purposes": ["politiattest-kontroll"],
     "requesters": [
-      { "kind": "attestation", "claimType": "no.nif.clubRole", "where": { "role": "leder", "orgId": "$request.orgId" } }
+      {
+        "kind": "attestation",
+        "claimType": "no.nif.clubRole",
+        "where": { "role": "leder", "orgId": "$request.orgId" }
+      }
     ]
   }
 }

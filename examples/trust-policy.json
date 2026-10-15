@@ -6,7 +6,11 @@
   "requireStatusCheck": true,
   "trust": [
     {
-      "claimTypes": ["no.nif.clubRole", "no.nif.instructorLicence", "no.nif.identityLinked"],
+      "claimTypes": [
+        "no.nif.clubRole",
+        "no.nif.instructorLicence",
+        "no.nif.identityLinked"
+      ],
       "issuer": "https://utsteder.example.no/.well-known/attestation-issuer.json",
       "repo": "did:plc:REPLACE-WITH-THE-ISSUERS-REPOSITORY-DID",
       "keys": [

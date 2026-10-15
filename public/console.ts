@@ -1,6 +1,7 @@
+import type { createIssuer } from "../src/core/issuer.ts";
 import type { Person } from "../src/types.ts";
 import type { Descriptor, AttestationRecord } from "../verify/types.ts";
-import type { createIssuer } from "../src/core/issuer.ts";
+
 type Issuer = ReturnType<typeof createIssuer>;
 type Held = ReturnType<Issuer["held"]>;
 type Issued = Awaited<ReturnType<Issuer["issue"]>>;
@@ -18,11 +19,12 @@ const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Forespørselen feilet.";
 function element<T extends HTMLElement>(
   selector: string,
-  constructor: { new (): T },
+  constructor: new () => T
 ): T {
   const node = document.querySelector(selector);
-  if (!(node instanceof constructor))
+  if (!(node instanceof constructor)) {
     throw new Error(`Missing page element: ${selector}`);
+  }
   return node;
 }
 const select = (selector: string) => element(selector, HTMLSelectElement);
@@ -30,7 +32,9 @@ const formElement = (selector: string) => element(selector, HTMLFormElement);
 const dialogElement = (selector: string) =>
   element(selector, HTMLDialogElement);
 function formTarget(target: EventTarget | null): HTMLFormElement {
-  if (!(target instanceof HTMLFormElement)) throw new Error("Missing form");
+  if (!(target instanceof HTMLFormElement)) {
+    throw new Error("Missing form");
+  }
   return target;
 }
 // The operator console. It is an ordinary client of the issuer's HTTP API: it
@@ -42,10 +46,10 @@ const store: {
   types: Descriptor[];
   subject: string;
 } = {
-  token: sessionStorage.getItem("issuer-token") || "",
   roster: {},
-  types: [],
   subject: "",
+  token: sessionStorage.getItem("issuer-token") || "",
+  types: [],
 };
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -58,14 +62,14 @@ const toast = (message: string) => {
 
 async function api<T = unknown>(
   path: string,
-  { method = "GET", json }: { method?: string; json?: unknown } = {},
+  { method = "GET", json }: { method?: string; json?: unknown } = {}
 ): Promise<T> {
   const response = await fetch(path, {
-    method,
     headers: {
       ...(store.token && { authorization: `Bearer ${store.token}` }),
       ...(json !== undefined && { "content-type": "application/json" }),
     },
+    method,
     ...(json !== undefined && { body: JSON.stringify(json) }),
   });
   const result: unknown = await response.json().catch(() => ({}));
@@ -73,62 +77,69 @@ async function api<T = unknown>(
     askForKey();
     throw new Error("Klientnøkkelen mangler eller er feil.");
   }
-  if (!response.ok)
+  if (!response.ok) {
     throw new Error(
       (typeof result === "object" &&
       result !== null &&
       "error" in result &&
       typeof result.error === "string"
         ? result.error
-        : "") || `Utstederen svarte ${response.status}.`,
+        : "") || `Utstederen svarte ${response.status}.`
     );
+  }
   // Same-origin typed API; dynamic values are rendered as text or escaped below.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Same-origin issuer API; values are displayed, never used to authorise an operation.
   return result as T;
 }
 
 function askForKey() {
   const dialog = dialogElement("#key-dialog");
-  if (!dialog.open) dialog.showModal();
+  if (!dialog.open) {
+    dialog.showModal();
+  }
 }
 formElement("#key-form").addEventListener("submit", () => {
-  store.token = String(
-    new FormData(formElement("#key-form")).get("token") ?? "",
-  );
+  store.token = formText(new FormData(formElement("#key-form")).get("token"));
   sessionStorage.setItem("issuer-token", store.token);
-  load();
+  run(load());
 });
 
 const name = (did: string) =>
-  did.replace(/^did:plc:demo-/, "").replace(/^did:plc:/, "");
+  did.replace(/^did:plc:demo-/u, "").replace(/^did:plc:/u, "");
 const options = (
-  select: HTMLSelectElement,
+  selection: HTMLSelectElement,
   entries: [string, string][],
-  placeholder?: string,
+  placeholder?: string
 ) => {
-  const chosen = select.value;
-  select.replaceChildren(
+  const chosen = selection.value;
+  selection.replaceChildren(
     ...(placeholder ? [new Option(placeholder, "")] : []),
-    ...entries.map(([value, label]) => new Option(label, value)),
+    ...entries.map(([value, label]) => new Option(label, value))
   );
-  if (entries.some(([value]) => value === chosen)) select.value = chosen;
+  if (entries.some(([value]) => value === chosen)) {
+    selection.value = chosen;
+  }
 };
 
 function renderIdentity(
   document_: IssuerDocument,
-  health?: { environment: string },
+  health?: { environment: string }
 ) {
   $("#issuer-name").textContent = document_.name;
   $("#issuer-url").textContent = document_.issuer;
-  const key = document_.keys[0];
-  if (!key?.kid || !key.x)
+  const [key] = document_.keys;
+  if (!key?.kid || !key.x) {
     throw new Error("Utstederen mangler offentlig nøkkel.");
+  }
   $("#issuer-key").textContent =
     `${key.kid} · ${key.x.slice(0, 12)}…${key.x.slice(-6)}`;
   $("#issuer-publish").textContent = document_.atprotoRepo
     ? `Offentlige attestasjoner publiseres i ${document_.atprotoRepo}`
     : "Ingen publisering konfigurert. Attestasjonene ligger hos utstederen.";
   document.title = `${document_.name} — utstederpult`;
-  if (health) $("#issuer-name").title = `Miljø: ${health.environment}`;
+  if (health) {
+    $("#issuer-name").title = `Miljø: ${health.environment}`;
+  }
 }
 
 function renderTypes(types: Descriptor[]) {
@@ -139,14 +150,14 @@ function renderTypes(types: Descriptor[]) {
     <li class="${type.visibility === "restricted" ? "restricted" : ""}">
       <strong>${escape(type.label.nb)}</strong>
       <span>${type.visibility === "restricted" ? "Besvares på spørsmål" : "Publiseres som post"}</span>
-    </li>`,
+    </li>`
     )
     .join("");
   options(
     select("#issue-type"),
     types
       .filter((t) => t.visibility === "public")
-      .map((t) => [t.id, t.label.nb]),
+      .map((t) => [t.id, t.label.nb])
   );
 }
 
@@ -157,7 +168,7 @@ function renderPeople(people: Record<string, Person>) {
     ? entries
         .map(
           ([did, facts]) =>
-            `<li><strong>${escape(name(did))}</strong><span>${escape(describe(facts))}</span></li>`,
+            `<li><strong>${escape(name(did))}</strong><span>${escape(describe(facts))}</span></li>`
         )
         .join("")
     : '<li class="empty">Ingen kontoer ennå.</li>';
@@ -168,11 +179,16 @@ function renderPeople(people: Record<string, Person>) {
     "#query-subject",
     "#query-requester",
     "#attest-subject",
-  ])
+  ]) {
     options(select(id), choices);
+  }
   options(select("#issue-requester"), choices, "Kontoen selv");
-  if (!store.subject && choices.length) store.subject = choices[0][0];
-  if (store.subject) select("#held-subject").value = store.subject;
+  if (!store.subject && choices.length) {
+    [[store.subject]] = choices;
+  }
+  if (store.subject) {
+    select("#held-subject").value = store.subject;
+  }
 }
 
 const describe = (facts: Person) =>
@@ -185,11 +201,12 @@ const describe = (facts: Person) =>
 async function renderHeld() {
   const subject = select("#held-subject").value;
   store.subject = subject;
-  if (!subject)
-    return void ($("#held").innerHTML =
-      '<li class="empty">Velg en konto.</li>');
+  if (!subject) {
+    $("#held").innerHTML = '<li class="empty">Velg en konto.</li>';
+    return;
+  }
   const { attestations } = await api<{ attestations: Held }>(
-    `/held?subject=${encodeURIComponent(subject)}`,
+    `/held?subject=${encodeURIComponent(subject)}`
   );
   $("#held").innerHTML = attestations.length
     ? attestations
@@ -218,7 +235,7 @@ async function renderAudit() {
     <time>${row.at.slice(11, 19)}</time>
     <span class="outcome ${row.outcome === "allowed" ? "allowed" : "denied"}">${escape(action(row))}</span>
     <span class="what">${escape(row.claim_type || "")} ${row.subject ? `om ${escape(name(row.subject))}` : ""} ${row.actor ? `· spurt av ${escape(name(row.actor))}` : ""}</span>
-  </li>`,
+  </li>`
         )
         .join("")
     : '<li class="empty">Ingenting er gjort ennå.</li>';
@@ -236,32 +253,46 @@ const action = (row: AuditRow) =>
     : ` · ${row.outcome === "denied" ? "avvist" : row.outcome}`);
 
 function escape(value: unknown) {
-  return String(value ?? "").replace(
-    /[&<>"']/g,
+  const display =
+    typeof value === "string" ? value : (JSON.stringify(value) ?? "");
+  return display.replaceAll(
+    /[&<>"']/gu,
     (character) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+      ({ '"': "&quot;", "&": "&amp;", "'": "&#39;", "<": "&lt;", ">": "&gt;" })[
         character
-      ] ?? character,
+      ] ?? character
   );
 }
 
 const pairs = (text: FormDataEntryValue | null) =>
   Object.fromEntries(
-    String(text || "")
-      .split(/[,\s]+/)
+    formText(text)
+      .split(/[,\s]+/u)
       .filter(Boolean)
       .map((part) => {
         const [field, ...rest] = part.split("=");
         return [field, rest.join("=")];
-      }),
+      })
   );
 
-async function act(button: EventTarget | null, work: () => Promise<void>) {
+function run(work: Promise<unknown>) {
+  work.catch((error: unknown) => {
+    toast(errorMessage(error));
+  });
+}
+function act(...args: Parameters<typeof actWork>) {
+  run(actWork(...args));
+}
+function formText(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? value : "";
+}
+async function actWork(button: EventTarget | null, work: () => Promise<void>) {
   if (
     !(button instanceof HTMLButtonElement) &&
     !(button instanceof HTMLInputElement)
-  )
+  ) {
     return;
+  }
   button.disabled = true;
   try {
     await work();
@@ -276,31 +307,32 @@ $("#seed").addEventListener("click", (event) =>
   act(event.target, async () => {
     const cast = {
       "did:plc:demo-leder": {
-        identity: { assuranceLevel: "substantial", provider: "demo-idp" },
         clubs: [{ orgId: "fjord", orgName: "Fjord idrettslag", role: "leder" }],
-      },
-      "did:plc:demo-trener": {
         identity: { assuranceLevel: "substantial", provider: "demo-idp" },
-        clubs: [
-          { orgId: "fjord", orgName: "Fjord idrettslag", role: "trener" },
-        ],
-        licences: [
-          { discipline: "svomming", level: "instruktor-2", orgId: "fjord" },
-        ],
-        attests: [{ orgId: "fjord" }],
       },
       "did:plc:demo-medlem": {
-        identity: { assuranceLevel: "substantial", provider: "demo-idp" },
         clubs: [
           { orgId: "fjord", orgName: "Fjord idrettslag", role: "medlem" },
         ],
+        identity: { assuranceLevel: "substantial", provider: "demo-idp" },
+      },
+      "did:plc:demo-trener": {
+        attests: [{ orgId: "fjord" }],
+        clubs: [
+          { orgId: "fjord", orgName: "Fjord idrettslag", role: "trener" },
+        ],
+        identity: { assuranceLevel: "substantial", provider: "demo-idp" },
+        licences: [
+          { discipline: "svomming", level: "instruktor-2", orgId: "fjord" },
+        ],
       },
     };
-    for (const [subject, facts] of Object.entries(cast))
-      await api("/demo/enrol", { method: "POST", json: { subject, facts } });
+    for (const [subject, facts] of Object.entries(cast)) {
+      await api("/demo/enrol", { json: { facts, subject }, method: "POST" });
+    }
     await load();
     toast("Tre demokontoer er lagt inn: leder, trener og medlem.");
-  }),
+  })
 );
 
 formElement("#issue-form").addEventListener("submit", (event) => {
@@ -310,13 +342,13 @@ formElement("#issue-form").addEventListener("submit", (event) => {
     const note = $("#issue-note");
     try {
       const result = await api<Issued>("/issue", {
-        method: "POST",
         json: {
           claimType: form.get("claimType"),
-          subject: form.get("subject"),
           request: pairs(form.get("request")),
           requesterDid: form.get("requesterDid") || form.get("subject"),
+          subject: form.get("subject"),
         },
+        method: "POST",
       });
       note.className = "note ok";
       note.textContent = `Utstedt ${result.attestation.claimType}, gyldig til ${result.attestation.expiresAt.slice(0, 10)}.`;
@@ -336,15 +368,17 @@ $("#held").addEventListener("click", (event) => {
     event.target instanceof Element
       ? event.target.closest<HTMLButtonElement>("[data-revoke]")
       : null;
-  if (!button) return;
+  if (!button) {
+    return;
+  }
   act(button, async () => {
     await api("/revoke", {
-      method: "POST",
       json: { id: button.dataset.revoke, requesterDid: button.dataset.subject },
+      method: "POST",
     });
     await Promise.all([renderHeld(), renderAudit()]);
     toast(
-      "Attestasjonen er trukket tilbake. Statussvaret endrer seg med én gang.",
+      "Attestasjonen er trukket tilbake. Statussvaret endrer seg med én gang."
     );
   });
 });
@@ -354,11 +388,11 @@ formElement("#query-form").addEventListener("submit", (event) => {
   act(event.submitter, async () => {
     const form = new FormData(formTarget(event.target));
     const output = $("#answer");
-    const requester = String(form.get("requesterDid") ?? "");
+    const requester = formText(form.get("requesterDid"));
     let attestations: AttestationRecord[] = [];
     try {
       const held = await api<{ attestations: Held }>(
-        `/held?subject=${encodeURIComponent(requester)}`,
+        `/held?subject=${encodeURIComponent(requester)}`
       );
       attestations = held.attestations
         .filter((row) => row.claimType === "no.nif.clubRole" && !row.revokedAt)
@@ -369,20 +403,20 @@ formElement("#query-form").addEventListener("submit", (event) => {
     }
     try {
       const result = await api<QueryResult>("/query", {
-        method: "POST",
         json: {
+          attestations,
           claimType: "no.politiet.attest",
-          subject: form.get("subject"),
           request: { orgId: form.get("orgId") },
           requesterDid: requester,
-          attestations,
+          subject: form.get("subject"),
         },
+        method: "POST",
       });
       const said =
         {
-          valid: "Gyldig attest",
-          none: "Ingen attest registrert",
           expired: "Utløpt attest",
+          none: "Ingen attest registrert",
+          valid: "Gyldig attest",
         }[result.answer] || result.answer;
       output.className = "answer";
       output.innerHTML = `<strong>${escape(said)}</strong><span>Om ${escape(name(result.subject))}, kontrollert ${escape(result.checkedAt.slice(11, 19))}. Ingen dokumentasjon utleveres.</span>`;
@@ -402,58 +436,64 @@ formElement("#attest-form").addEventListener("submit", (event) => {
   act(event.submitter, async () => {
     const form = new FormData(formTarget(event.target));
     const response = await fetch("/issue", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${form.get("token")}`,
-        "content-type": "application/json",
-      },
       body: JSON.stringify({
         claimType: "no.politiet.attest",
-        subject: form.get("subject"),
         request: { orgId: form.get("orgId") },
+        subject: form.get("subject"),
       }),
+      headers: {
+        authorization: `Bearer ${formText(form.get("token"))}`,
+        "content-type": "application/json",
+      },
+      method: "POST",
     });
     const result: unknown = await response.json().catch(() => ({}));
     await renderAudit();
-    if (!response.ok)
+    if (!response.ok) {
       throw new Error(
         (typeof result === "object" &&
         result !== null &&
         "error" in result &&
         typeof result.error === "string"
           ? result.error
-          : "") || `Utstederen svarte ${response.status}.`,
+          : "") || `Utstederen svarte ${response.status}.`
       );
+    }
     toast(
-      "Attesten er registrert hos utstederen. Den publiseres ingen steder.",
+      "Attesten er registrert hos utstederen. Den publiseres ingen steder."
     );
   });
 });
 
-select("#held-subject").addEventListener("change", () =>
-  renderHeld().catch((error) => toast(errorMessage(error))),
-);
+select("#held-subject").addEventListener("change", () => {
+  run(renderHeld());
+});
 
 async function load() {
   try {
     const [document_, health, types] = await Promise.all([
       api<IssuerDocument>("/.well-known/attestation-issuer.json"),
-      api<{ environment: string }>("/health").catch(() => undefined),
+      api<{ environment: string }>("/health").catch((): undefined => undefined),
       api<Descriptor[]>("/claim-types"),
     ]);
     renderIdentity(document_, health);
     renderTypes(types);
     const { people } = await api<{ people: Record<string, Person> }>(
-      "/demo/roster",
+      "/demo/roster"
     );
     renderPeople(people);
     await Promise.all([renderHeld(), renderAudit()]);
     dialogElement("#key-dialog").close();
   } catch (error) {
-    if (!store.token) askForKey();
-    else toast(errorMessage(error));
+    if (!store.token) {
+      askForKey();
+    } else {
+      toast(errorMessage(error));
+    }
   }
 }
 
-if (!store.token) askForKey();
+if (!store.token) {
+  askForKey();
+}
 await load();

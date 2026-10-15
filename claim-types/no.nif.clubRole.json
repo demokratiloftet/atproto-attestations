@@ -5,13 +5,20 @@
   "description": "En akseptert myndighet bekrefter at kontoen har en navngitt rolle i et navngitt idrettslag. Rollen leder gir rett til a be om attestasjoner pa vegne av det samme laget.",
   "visibility": "public",
   "maxLifetimeDays": 180,
-  "subjectAssurance": { "claimType": "no.nif.identityLinked", "where": { "assuranceLevel": "substantial" } },
+  "subjectAssurance": {
+    "claimType": "no.nif.identityLinked",
+    "where": { "assuranceLevel": "substantial" }
+  },
   "claim": {
     "type": "object",
     "additionalProperties": false,
     "required": ["orgId", "orgName", "role"],
     "properties": {
-      "orgId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,39}$", "description": "Idrettslagets identifikator hos utstederen." },
+      "orgId": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+        "description": "Idrettslagets identifikator hos utstederen."
+      },
       "orgName": { "type": "string", "minLength": 1, "maxLength": 120 },
       "role": { "type": "string", "enum": ["leder", "trener", "medlem"] }
     }
@@ -19,7 +26,11 @@
   "issuance": {
     "requesters": [
       { "kind": "self" },
-      { "kind": "attestation", "claimType": "no.nif.clubRole", "where": { "role": "leder", "orgId": "$request.orgId" } }
+      {
+        "kind": "attestation",
+        "claimType": "no.nif.clubRole",
+        "where": { "role": "leder", "orgId": "$request.orgId" }
+      }
     ]
   },
   "disclosure": { "mode": "public-record" }

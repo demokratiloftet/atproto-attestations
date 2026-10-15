@@ -3,9 +3,11 @@ export function isObject(value: unknown): value is Record<string, unknown> {
 }
 export function object(
   value: unknown,
-  label = "value",
+  label = "value"
 ): Record<string, unknown> {
-  if (!isObject(value)) throw new Error(`${label} must be an object`);
+  if (!isObject(value)) {
+    throw new Error(`${label} must be an object`);
+  }
   return value;
 }
 export function message(error: unknown): string {

@@ -3,14 +3,14 @@ import type { Publisher } from "../types.ts";
 // store and are answered only through an authorised query.
 export function createNullPublisher(): Publisher {
   return {
+    async describe() {
+      return {};
+    },
     id: "none",
     async publish() {
       return {};
     },
     async remove() {
-      return {};
-    },
-    async describe() {
       return {};
     },
   };

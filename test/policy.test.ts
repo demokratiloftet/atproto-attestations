@@ -1,67 +1,65 @@
-import type { Claim, RequesterRule } from "../verify/types.ts";
-import type { AttestationOptions, PolicyContext } from "../src/types.ts";
-import { test } from "node:test";
 import assert from "node:assert/strict";
-import { generateKeyPair } from "../src/core/sign.ts";
+import { test } from "node:test";
+
 import { createAttestation } from "../src/core/attestation.ts";
 import { evaluateRequester } from "../src/core/policy.ts";
+import { generateKeyPair } from "../src/core/sign.ts";
+import type { AttestationOptions, PolicyContext } from "../src/types.ts";
 import { parseDescriptor } from "../verify/claim-type.ts";
+import type { Claim, RequesterRule } from "../verify/types.ts";
 
 const ISSUER = "https://nif.example/.well-known/attestation-issuer.json";
 const NOW = Date.parse("2026-09-17T12:00:00Z");
 const COACH = "did:plc:coach";
 const LEADER = "did:plc:leader";
 const CHILD = "did:plc:child";
-
 const clubRole = parseDescriptor({
-  version: 1,
-  id: "no.nif.clubRole",
-  label: { nb: "Klubbrolle" },
-  description: "Rolle i et idrettslag.",
-  visibility: "public",
-  maxLifetimeDays: 180,
   claim: {
-    type: "object",
     additionalProperties: false,
-    required: ["orgId", "role"],
     properties: {
       orgId: { type: "string" },
-      role: { type: "string", enum: ["leder", "trener", "medlem"] },
+      role: { enum: ["leder", "trener", "medlem"], type: "string" },
     },
+    required: ["orgId", "role"],
+    type: "object",
   },
-  issuance: { requesters: [{ kind: "self" }] },
+  description: "Rolle i et idrettslag.",
   disclosure: { mode: "public-record" },
+  id: "no.nif.clubRole",
+  issuance: { requesters: [{ kind: "self" }] },
+  label: { nb: "Klubbrolle" },
+  maxLifetimeDays: 180,
+  version: 1,
+  visibility: "public",
 });
-
 // The case that motivated this: a club leader may ask about a coach in their
 // own club; a child, a parent, or the leader of another club may not.
 const attest = parseDescriptor({
-  version: 1,
-  id: "no.politiet.attest",
-  label: { nb: "Politiattest" },
-  description: "Syntetisk demonstrasjon av begrenset innsyn.",
-  visibility: "restricted",
-  maxLifetimeDays: 1095,
   claim: {
-    type: "object",
     additionalProperties: false,
-    required: ["orgId", "purpose"],
     properties: { orgId: { type: "string" }, purpose: { type: "string" } },
+    required: ["orgId", "purpose"],
+    type: "object",
   },
-  issuance: { requesters: [{ kind: "client", client: "politiet-backend" }] },
+  description: "Syntetisk demonstrasjon av begrenset innsyn.",
   disclosure: {
     mode: "query-only",
     purposes: ["politiattest-kontroll"],
     requesters: [
       {
-        kind: "attestation",
         claimType: "no.nif.clubRole",
-        where: { role: "leder", orgId: "$request.orgId" },
+        kind: "attestation",
+        where: { orgId: "$request.orgId", role: "leder" },
       },
     ],
   },
+  id: "no.politiet.attest",
+  issuance: { requesters: [{ client: "politiet-backend", kind: "client" }] },
+  label: { nb: "Politiattest" },
+  maxLifetimeDays: 1095,
+  version: 1,
+  visibility: "restricted",
 });
-
 const setup = async () => {
   const signer = await generateKeyPair("key-1");
   const claimTypes = {
@@ -69,7 +67,6 @@ const setup = async () => {
     "no.politiet.attest": attest,
   };
   const trustPolicy = {
-    version: 1,
     requireStatusCheck: false,
     trust: [
       {
@@ -78,80 +75,86 @@ const setup = async () => {
         keys: [signer.publicJwk],
       },
     ],
+    version: 1,
   };
   const role = async (
     subject: string,
     claim: Claim,
-    overrides: Partial<AttestationOptions> = {},
+    overrides: Partial<AttestationOptions> = {}
   ) =>
     (
       await createAttestation({
-        signer,
-        issuer: ISSUER,
-        subject,
-        claimType: "no.nif.clubRole",
         claim,
+        claimType: "no.nif.clubRole",
+        issuer: ISSUER,
         lifetimeDays: 30,
         now: NOW,
+        signer,
+        subject,
         ...overrides,
       })
     ).record;
   const evaluate = (
     rules: RequesterRule[] | undefined,
-    context: Omit<PolicyContext, "trustPolicy" | "claimTypes">,
+    context: Omit<PolicyContext, "trustPolicy" | "claimTypes">
   ) =>
-    evaluateRequester(rules, { trustPolicy, claimTypes, now: NOW, ...context });
-  return { signer, role, evaluate, trustPolicy, claimTypes };
+    evaluateRequester(rules, {
+      claimTypes,
+      now: NOW,
+      trustPolicy,
+      ...context,
+    });
+  return { claimTypes, evaluate, role, signer, trustPolicy };
 };
 
-test("self-service: the holder may ask about their own account, and nobody else may", async () => {
+void test("self-service: the holder may ask about their own account, and nobody else may", async () => {
   const { evaluate } = await setup();
   const rules: RequesterRule[] = [{ kind: "self" }];
   assert.equal(
     (
       await evaluate(rules, {
+        request: {},
         requester: { did: COACH },
         subject: COACH,
-        request: {},
       })
     ).allowed,
-    true,
+    true
   );
   const denied = await evaluate(rules, {
+    request: {},
     requester: { did: LEADER },
     subject: COACH,
-    request: {},
   });
   assert.equal(denied.allowed, false);
-  assert.match(denied.reason, /ikke/i);
+  assert.match(denied.reason, /ikke/iu);
 });
 
-test("a club leader may ask about a coach in the club they lead", async () => {
+void test("a club leader may ask about a coach in the club they lead", async () => {
   const { role, evaluate } = await setup();
   const evidence = [await role(LEADER, { orgId: "fjord", role: "leder" })];
   const result = await evaluate(attest.disclosure.requesters, {
-    requester: { did: LEADER, attestations: evidence },
-    subject: COACH,
     request: { orgId: "fjord" },
+    requester: { attestations: evidence, did: LEADER },
+    subject: COACH,
   });
   assert.equal(result.allowed, true, result.reason);
-  assert(result.allowed && result.matched);
+  assert.ok(result.allowed && result.matched);
   assert.equal(result.matched.claimType, "no.nif.clubRole");
 });
 
-test("the same leader may not ask about another club", async () => {
+void test("the same leader may not ask about another club", async () => {
   const { role, evaluate } = await setup();
   const evidence = [await role(LEADER, { orgId: "fjord", role: "leder" })];
   const result = await evaluate(attest.disclosure.requesters, {
-    requester: { did: LEADER, attestations: evidence },
-    subject: COACH,
     request: { orgId: "marka" },
+    requester: { attestations: evidence, did: LEADER },
+    subject: COACH,
   });
   assert.equal(result.allowed, false);
-  assert.match(result.reason, /orgId/);
+  assert.match(result.reason, /orgId/u);
 });
 
-test("a member, a coach and someone with no attestation at all are refused", async () => {
+void test("a member, a coach and someone with no attestation at all are refused", async () => {
   const { role, evaluate } = await setup();
   const rules = attest.disclosure.requesters;
   const cases: [string, unknown[]][] = [
@@ -161,41 +164,40 @@ test("a member, a coach and someone with no attestation at all are refused", asy
   ];
   for (const [who, attestations] of cases) {
     const result = await evaluate(rules, {
-      requester: { did: CHILD, attestations },
-      subject: COACH,
       request: { orgId: "fjord" },
+      requester: { attestations, did: CHILD },
+      subject: COACH,
     });
     assert.equal(result.allowed, false, `${who} was allowed`);
   }
 });
 
-test("evidence that belongs to somebody else does not make the requester a leader", async () => {
+void test("evidence that belongs to somebody else does not make the requester a leader", async () => {
   const { role, evaluate } = await setup();
   // A real leader's attestation, presented by someone who is not that leader.
   const stolen = [await role(LEADER, { orgId: "fjord", role: "leder" })];
   const result = await evaluate(attest.disclosure.requesters, {
-    requester: { did: CHILD, attestations: stolen },
-    subject: COACH,
     request: { orgId: "fjord" },
+    requester: { attestations: stolen, did: CHILD },
+    subject: COACH,
   });
   assert.equal(result.allowed, false);
-  assert.match(result.reason, /kontoen/i);
+  assert.match(result.reason, /kontoen/iu);
 });
 
-test("expired or forged evidence does not authorise anything", async () => {
+void test("expired or forged evidence does not authorise anything", async () => {
   const { role, evaluate, trustPolicy, claimTypes } = await setup();
   const rules = attest.disclosure.requesters;
   const context = (attestations: unknown[]) => ({
-    requester: { did: LEADER, attestations },
-    subject: COACH,
     request: { orgId: "fjord" },
+    requester: { attestations, did: LEADER },
+    subject: COACH,
   });
-
   const expired = [
     await role(
       LEADER,
       { orgId: "fjord", role: "leder" },
-      { lifetimeDays: 1, now: NOW - 5 * 86400000 },
+      { lifetimeDays: 1, now: NOW - 5 * 86_400_000 }
     ),
   ];
   assert.equal((await evaluate(rules, context(expired))).allowed, false);
@@ -204,13 +206,13 @@ test("expired or forged evidence does not authorise anything", async () => {
   const forged = [
     (
       await createAttestation({
-        signer: attacker,
-        issuer: ISSUER,
-        subject: LEADER,
-        claimType: "no.nif.clubRole",
         claim: { orgId: "fjord", role: "leder" },
+        claimType: "no.nif.clubRole",
+        issuer: ISSUER,
         lifetimeDays: 30,
         now: NOW,
+        signer: attacker,
+        subject: LEADER,
       })
     ).record,
   ];
@@ -221,47 +223,47 @@ test("expired or forged evidence does not authorise anything", async () => {
   assert.equal(Object.keys(claimTypes).length, 2);
 });
 
-test("a trusted backend client may be named directly, and only the named one qualifies", async () => {
+void test("a trusted backend client may be named directly, and only the named one qualifies", async () => {
   const { evaluate } = await setup();
   const rules = attest.issuance.requesters;
   assert.equal(
     (
       await evaluate(rules, {
+        request: { orgId: "fjord" },
         requester: { client: "politiet-backend" },
         subject: COACH,
-        request: { orgId: "fjord" },
       })
     ).allowed,
-    true,
+    true
   );
   assert.equal(
     (
       await evaluate(rules, {
+        request: { orgId: "fjord" },
         requester: { client: "calendar" },
         subject: COACH,
-        request: { orgId: "fjord" },
       })
     ).allowed,
-    false,
+    false
   );
   assert.equal(
     (
       await evaluate(rules, {
+        request: { orgId: "fjord" },
         requester: { did: LEADER },
         subject: COACH,
-        request: { orgId: "fjord" },
       })
     ).allowed,
-    false,
+    false
   );
 });
 
-test("an empty rule list denies, and a decision always states a reason", async () => {
+void test("an empty rule list denies, and a decision always states a reason", async () => {
   const { evaluate } = await setup();
   const result = await evaluate([], {
+    request: {},
     requester: { did: LEADER },
     subject: COACH,
-    request: {},
   });
   assert.equal(result.allowed, false);
   assert.equal(typeof result.reason, "string");

@@ -1,0 +1,55 @@
+{
+  "accounts": [
+    { "slug": "devotta", "name": "Devotta · demo" },
+    { "slug": "fjord", "name": "Fjord idrettslag · demo" },
+    { "slug": "emil", "name": "Emil · person" },
+    { "slug": "nina", "name": "Nina · organisasjonsgodkjenner" },
+    { "slug": "maja", "name": "Maja · person" },
+    { "slug": "kari", "name": "Kari · klubbgodkjenner" }
+  ],
+  "people": ["emil", "nina", "maja", "kari"],
+  "organisations": [
+    {
+      "account": "devotta",
+      "domain": "devotta.test",
+      "approvers": ["nina"],
+      "scopes": ["*", "team:platform"]
+    },
+    {
+      "account": "fjord",
+      "domain": "fjord.test",
+      "approvers": ["kari"],
+      "scopes": ["*", "team:svomming"]
+    }
+  ],
+  "seedId": "demo-v1",
+  "examples": [
+    {
+      "subject": "emil",
+      "organisation": "devotta",
+      "relationship": "employee",
+      "roleId": "devotta.developer",
+      "roleLabel": "Utvikler",
+      "scope": "*",
+      "accepted": true,
+      "grant": true,
+      "eventTitle": "Åpen fagkveld · syntetisk demo"
+    },
+    {
+      "subject": "maja",
+      "organisation": "devotta",
+      "relationship": "employee",
+      "roleId": "devotta.project-member",
+      "roleLabel": "Prosjektmedarbeider",
+      "scope": "*"
+    },
+    {
+      "subject": "emil",
+      "organisation": "fjord",
+      "relationship": "volunteer",
+      "roleId": "fjord.coach",
+      "roleLabel": "Trener",
+      "scope": "team:svomming"
+    }
+  ]
+}

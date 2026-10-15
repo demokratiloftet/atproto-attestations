@@ -13,3 +13,8 @@
 !scripts/**
 !claim-types/
 !claim-types/**
+!vendor/
+!vendor/**
+!deploy/
+!deploy/pilot/
+!deploy/pilot/Dockerfile

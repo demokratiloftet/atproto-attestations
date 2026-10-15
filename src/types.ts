@@ -11,6 +11,7 @@ import type {
   Jwk,
 } from "../verify/types.ts";
 import type { IssuerStore } from "./core/store.ts";
+
 export interface Signer {
   kid: string;
   privateJwk: Jwk;

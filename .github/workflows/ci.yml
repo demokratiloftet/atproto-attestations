@@ -1,34 +1,161 @@
-name: CI
+name: Validate and deploy
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: validate-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 jobs:
-  checks:
+  quality:
+    name: Lint, formatting and types
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Oxlint — correctness and type-aware rules
+        run: pnpm lint
+      - name: Oxfmt — formatting
+        run: pnpm format:check
+      - name: TypeScript — strict type checking
+        run: pnpm typecheck
+  tests:
+    name: Unit and security tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm test
+  integration:
+    name: AT Protocol integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Install the isolated PDS fixture
+        run: pnpm --dir pilot-fixture install --frozen-lockfile
+      - name: Verify two signed repositories, permissions and revocation
+        run: pnpm test:pilot-integration
+  package:
+    name: Standalone verifier package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Verify the exported package independently of issuer code
+        run: pnpm test:package
+  security:
+    name: Secrets and dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '24.17.0'
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        with:
-          version: 11.8.0
-      - name: Scan Git history for secrets
+      - uses: ./.github/actions/setup
+      - name: Scan source and Git history for secrets
         run: bash .github/scripts/scan-secrets.sh
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=moderate
-      - run: pnpm run format:check
-      - run: pnpm test
-      - run: pnpm run test:package
-      - run: docker build .
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=moderate
+      - name: Check deployment scripts
+        run: |
+          python3 -m py_compile deploy/pilot/*.py
+          python3 -m unittest discover -s test -p '*_test.py'
+  image:
+    name: Build release images
+    needs: [quality, tests, integration, package, security]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build issuer and affiliation app
+        env:
+          REVISION: ${{ github.sha }}
+        run: |
+          docker build --tag issuer-validation .
+          docker build --file deploy/pilot/Dockerfile --label "org.opencontainers.image.revision=$REVISION" --tag "affiliation-pilot:$REVISION" .
+      - name: Save the exact validated image
+        env:
+          REVISION: ${{ github.sha }}
+        run: |
+          docker save "affiliation-pilot:$REVISION" | gzip > affiliation-image.tar.gz
+          sha256sum affiliation-image.tar.gz > affiliation-image.tar.gz.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: affiliation-image-${{ github.sha }}
+          path: |
+            affiliation-image.tar.gz
+            affiliation-image.tar.gz.sha256
+          retention-days: 7
+          if-no-files-found: error
+  gate:
+    name: Ready to deploy
+    if: always()
+    needs: [quality, tests, integration, package, security, image]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every check to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('| Check | Result |\n|---|---|\n')
+              for name, value in results.items():
+                  summary.write(f"| {name} | {value['result']} |\n")
+          assert all(value['result'] == 'success' for value in results.values()), 'A required check failed or was skipped.'
+          PY
+  deploy:
+    name: Deploy VPS demo
+    needs: gate
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    environment:
+      name: demo
+      url: https://tilknytning.hackaton.demokratiloftet.no
+    concurrency:
+      group: affiliation-demo-deployment
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: affiliation-image-${{ github.sha }}
+      - name: Deploy the checked image with rollback on health failure
+        env:
+          REVISION: ${{ github.sha }}
+          SSH_KEY: ${{ secrets.DEMO_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEMO_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          sha256sum --check affiliation-image.tar.gz.sha256
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy ~/.ssh/known_hosts
+          trap 'rm -f ~/.ssh/deploy' EXIT
+          digest=$(sha256sum affiliation-image.tar.gz | cut -d ' ' -f 1)
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes affiliation-deploy@187.124.129.149 "deploy $REVISION $digest" < affiliation-image.tar.gz
+      - name: Check the public HTTPS demo
+        run: curl --fail --silent --show-error --retry 3 https://tilknytning.hackaton.demokratiloftet.no/health

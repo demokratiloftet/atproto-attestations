@@ -1,14 +1,15 @@
-import type { Payload } from "../../verify/types.ts";
-import type { AttestationOptions, Minted, Signer } from "../types.ts";
 // Builds the signed objects. The record published to a repository is a thin
 // wrapper: the JWS carries every fact, and `view` exists only so a human
 // browsing a repository can read it.
 import { randomUUID } from "node:crypto";
-import { signCompact } from "./sign.ts";
-import { RECORD_TYPE } from "../../verify/record.ts";
 
-export { RECORD_TYPE };
-const DAY = 86400000;
+import { RECORD_TYPE } from "../../verify/record.ts";
+import type { Payload } from "../../verify/types.ts";
+import type { AttestationOptions, Minted, Signer } from "../types.ts";
+import { signCompact } from "./sign.ts";
+
+export { RECORD_TYPE } from "../../verify/record.ts";
+const DAY = 86_400_000;
 
 export async function createAttestation({
   signer,
@@ -24,31 +25,31 @@ export async function createAttestation({
   const issuedAt = new Date(now).toISOString();
   const expiresAt = new Date(now + lifetimeDays * DAY).toISOString();
   const payload: Payload = {
-    v: 1,
+    claim,
+    claimType,
+    exp: expiresAt,
+    iat: issuedAt,
     id,
     iss: issuer,
-    sub: subject,
-    claimType,
-    claim,
-    iat: issuedAt,
-    exp: expiresAt,
     status: statusUrl(issuer, id),
+    sub: subject,
+    v: 1,
     ...(demo ? { demo: true } : {}),
   };
   const jws = await signCompact(signer, payload);
   return {
-    payload,
     jws,
+    payload,
     record: {
       $type: RECORD_TYPE,
-      version: 1,
       jws,
+      version: 1,
       view: {
         claimType,
-        subject,
-        issuedAt,
         expiresAt,
+        issuedAt,
         issuer,
+        subject,
         ...(demo ? { demo: true } : {}),
       },
     },
@@ -71,14 +72,14 @@ export async function createStatus({
   now?: number;
 }) {
   const payload = {
-    v: 1,
-    typ: "status",
+    at: new Date(now).toISOString(),
     id,
     iss: issuer,
     status: state,
-    at: new Date(now).toISOString(),
+    typ: "status",
+    v: 1,
   };
-  return { payload, jws: await signCompact(signer, payload) };
+  return { jws: await signCompact(signer, payload), payload };
 }
 
 export function statusUrl(issuer: string, id: string) {

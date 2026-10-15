@@ -1,14 +1,15 @@
-import type { readConfig } from "./config.ts";
 // Wires configuration into a running issuer. Kept separate from the HTTP layer
 // so tests, the CLI and the server all build the same object.
 import { join } from "node:path";
+
+import { createDemoAdapter } from "./adapters/demo-nif.ts";
+import type { readConfig } from "./config.ts";
+import { createIssuer } from "./core/issuer.ts";
 import { loadSigner } from "./core/keys.ts";
 import { loadClaimTypes } from "./core/registry.ts";
 import { IssuerStore } from "./core/store.ts";
-import { createIssuer } from "./core/issuer.ts";
-import { createDemoAdapter } from "./adapters/demo-nif.ts";
-import { createNullPublisher } from "./publish/none.ts";
 import { createAtprotoPublisher } from "./publish/atproto.ts";
+import { createNullPublisher } from "./publish/none.ts";
 
 export async function createService(config: ReturnType<typeof readConfig>) {
   const claimTypes = loadClaimTypes(config.claimTypesDir);
@@ -28,28 +29,27 @@ export async function createService(config: ReturnType<typeof readConfig>) {
   const description = await publisher
     .describe()
     .catch(() => ({ repo: undefined }));
-  const repo = description.repo;
-
+  const { repo } = description;
   const issuer = createIssuer({
-    issuer: config.issuer,
-    name: config.name,
+    adapter,
+    claimTypes,
     contact: config.contact,
     demo: config.demo,
-    signer,
-    store,
-    claimTypes,
-    adapter,
+    issuer: config.issuer,
+    name: config.name,
     publisher,
     repo,
+    signer,
+    store,
   });
   return {
-    issuer,
     adapter,
-    store,
-    signer,
     claimTypes,
+    config,
+    issuer,
     publisher,
     repo,
-    config,
+    signer,
+    store,
   };
 }

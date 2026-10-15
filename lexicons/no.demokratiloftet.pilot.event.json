@@ -1,0 +1,47 @@
+{
+  "lexicon": 1,
+  "id": "no.demokratiloftet.pilot.event",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": [
+          "title",
+          "startsAt",
+          "organisationDid",
+          "scope",
+          "createdAt",
+          "demo"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 180
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "organisationDid": {
+            "type": "string",
+            "format": "did"
+          },
+          "scope": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "demo": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      }
+    }
+  }
+}

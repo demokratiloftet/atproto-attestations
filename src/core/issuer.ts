@@ -1,4 +1,10 @@
+// The issuer: descriptor, policy, adapter, signature, publication, status.
+// Order matters and is deliberate. Nothing is signed before the requester is
+// allowed, the subject is assured, and the adapter has agreed to the fact.
+import { validateClaim, matchWhere } from "../../verify/claim-type.ts";
+import { verifyAttestation } from "../../verify/index.ts";
 import type { Descriptor, Claim, Payload } from "../../verify/types.ts";
+import { message } from "../../verify/values.ts";
 import type {
   IssuerOptions,
   Request,
@@ -6,18 +12,12 @@ import type {
   Requester,
   Publication,
 } from "../types.ts";
-import { message } from "../../verify/values.ts";
-// The issuer: descriptor, policy, adapter, signature, publication, status.
-// Order matters and is deliberate. Nothing is signed before the requester is
-// allowed, the subject is assured, and the adapter has agreed to the fact.
-import { validateClaim, matchWhere } from "../../verify/claim-type.ts";
-import { verifyAttestation } from "../../verify/index.ts";
 import { createAttestation, createStatus, RECORD_TYPE } from "./attestation.ts";
-import { evaluateRequester } from "./policy.ts";
 import { issuerDocument, suggestedTrustPolicy } from "./keys.ts";
+import { evaluateRequester } from "./policy.ts";
 
-function refuse(status: number, message: string): never {
-  throw Object.assign(new Error(message), { status });
+function refuse(status: number, detail: string): never {
+  throw Object.assign(new Error(detail), { status });
 }
 
 export function createIssuer({
@@ -34,7 +34,7 @@ export function createIssuer({
   now = Date.now,
 }: IssuerOptions) {
   const trustPolicy = () =>
-    suggestedTrustPolicy({ issuer, signer, claimTypes, repo });
+    suggestedTrustPolicy({ claimTypes, issuer, repo, signer });
   const self = () => ({ ...trustPolicy(), requireStatusCheck: false });
   const descriptorFor = (claimType: string) =>
     claimTypes[claimType] ||
@@ -43,41 +43,46 @@ export function createIssuer({
     requester?.did ||
     (requester?.client && `client:${requester.client}`) ||
     "ukjent";
-
   // The issuer verifies presented evidence with the same library and the same
   // trust policy a consuming application would use. No internal shortcut.
   const verifyEvidence = (records: unknown[] | undefined, at: number) =>
     Promise.all(
       (records || []).slice(0, 10).map((record) =>
         verifyAttestation(record, {
-          trustPolicy: self(),
           claimTypes,
           now: at,
-        }),
-      ),
+          trustPolicy: self(),
+        })
+      )
     );
 
   async function assured(
     descriptor: Descriptor,
     subject: string,
     presented: unknown[] | undefined,
-    at: number,
+    at: number
   ): Promise<{ ok: true; from?: string } | { ok: false; reason: string }> {
     const requirement = descriptor.subjectAssurance;
-    if (!requirement) return { ok: true };
+    if (!requirement) {
+      return { ok: true };
+    }
     const context = { request: {}, subject };
     const held = store
       .active(subject, requirement.claimType, new Date(at).toISOString())
       .filter((row) => matchWhere(row.claim, requirement.where, context).ok);
-    if (held.length) return { ok: true, from: "issuer" };
-    for (const result of await verifyEvidence(presented, at))
+    if (held.length) {
+      return { from: "issuer", ok: true };
+    }
+    for (const result of await verifyEvidence(presented, at)) {
       if (
         result.valid &&
         result.attestation.claimType === requirement.claimType &&
         result.attestation.subject === subject &&
         matchWhere(result.attestation.claim, requirement.where, context).ok
-      )
-        return { ok: true, from: "presented" };
+      ) {
+        return { from: "presented", ok: true };
+      }
+    }
     return {
       ok: false,
       reason: `Kontoen mangler en gyldig ${requirement.claimType}${requirement.where ? ` (${JSON.stringify(requirement.where)})` : ""}. Koble identiteten din forst.`,
@@ -95,25 +100,26 @@ export function createIssuer({
     const descriptor = descriptorFor(claimType);
     if (
       typeof subject !== "string" ||
-      !/^did:[a-z]+:[a-zA-Z0-9._:%-]{1,250}$/.test(subject)
-    )
+      !/^did:[a-z]+:[a-zA-Z0-9._:%-]{1,250}$/u.test(subject)
+    ) {
       refuse(400, "Mangler en gyldig konto (DID) attestasjonen skal gjelde.");
+    }
 
     const evidence = await verifyEvidence(requester.attestations, at);
     const decision = await evaluateRequester(descriptor.issuance.requesters, {
-      requester: { ...requester, attestations: requester.attestations },
-      subject,
-      request,
-      trustPolicy: self(),
       claimTypes,
       now: at,
+      request,
+      requester: { ...requester, attestations: requester.attestations },
+      subject,
+      trustPolicy: self(),
     });
     if (!decision.allowed) {
       audit("issue", "denied", {
         claimType,
-        subject,
-        requester,
         detail: decision.reason,
+        requester,
+        subject,
       });
       refuse(403, decision.reason);
     }
@@ -122,31 +128,31 @@ export function createIssuer({
       descriptor,
       subject,
       subjectAttestations,
-      at,
+      at
     );
     if (!assurance.ok) {
       audit("issue", "denied", {
         claimType,
-        subject,
-        requester,
         detail: assurance.reason,
+        requester,
+        subject,
       });
       refuse(403, assurance.reason);
     }
 
     const answer = await adapter.check({
       claimType,
-      subject,
+      evidence,
       request,
       requester,
-      evidence,
+      subject,
     });
     if (!answer?.granted) {
       audit("issue", "refused", {
         claimType,
-        subject,
-        requester,
         detail: answer?.reason,
+        requester,
+        subject,
       });
       refuse(422, answer?.reason || "Utstederen kan ikke bekrefte dette.");
     }
@@ -155,41 +161,41 @@ export function createIssuer({
     if (errors.length) {
       audit("issue", "error", {
         claimType,
-        subject,
-        requester,
         detail: errors.join("; "),
+        requester,
+        subject,
       });
       refuse(
         500,
-        `Utstederen produserte en ugyldig attestasjon: ${errors.join("; ")}`,
+        `Utstederen produserte en ugyldig attestasjon: ${errors.join("; ")}`
       );
     }
 
     // An adapter may shorten a lifetime; it can never extend the claim type's.
     const lifetimeDays = Math.min(
       descriptor.maxLifetimeDays,
-      answer.maxLifetimeDays ?? descriptor.maxLifetimeDays,
+      answer.maxLifetimeDays ?? descriptor.maxLifetimeDays
     );
     const { payload, jws, record } = await createAttestation({
-      signer,
-      issuer,
-      subject,
-      claimType,
       claim: answer.claim,
+      claimType,
+      demo,
+      issuer,
       lifetimeDays,
       now: at,
-      demo,
+      signer,
+      subject,
     });
 
     store.put({
-      id: payload.id,
-      claimType,
-      subject,
       claim: answer.claim,
-      issuedAt: payload.iat,
+      claimType,
       expiresAt: payload.exp,
-      visibility: descriptor.visibility,
+      id: payload.id,
+      issuedAt: payload.iat,
       jws,
+      subject,
+      visibility: descriptor.visibility,
     });
     let location: Publication = {};
     if (descriptor.visibility === "public") {
@@ -201,28 +207,28 @@ export function createIssuer({
         // saying it was published when it was not would be worse.
         audit("publish", "error", {
           claimType,
-          subject,
-          requester,
           detail: message(error),
+          requester,
+          subject,
         });
         refuse(
           503,
-          `Attestasjonen ble utstedt, men kunne ikke publiseres: ${message(error)}`,
+          `Attestasjonen ble utstedt, men kunne ikke publiseres: ${message(error)}`
         );
       }
     }
     audit("issue", "allowed", {
       claimType,
-      subject,
-      requester,
       detail: decision.reason,
+      requester,
+      subject,
     });
     return {
       attestation: view(payload),
-      record,
-      jws,
-      uri: location.uri,
       cid: location.cid,
+      jws,
+      record,
+      uri: location.uri,
     };
   }
 
@@ -236,27 +242,30 @@ export function createIssuer({
   }: Request) {
     const at = now();
     const descriptor = descriptorFor(claimType);
-    if (descriptor.disclosure.mode !== "query-only")
+    if (descriptor.disclosure.mode !== "query-only") {
       refuse(
         400,
-        `${claimType} er et offentlig register. Les posten direkte i stedet.`,
+        `${claimType} er et offentlig register. Les posten direkte i stedet.`
       );
+    }
 
     const decision = await evaluateRequester(descriptor.disclosure.requesters, {
-      requester,
-      subject,
-      request,
-      trustPolicy: self(),
       claimTypes,
       now: at,
+      request,
+      requester,
+      subject,
+      trustPolicy: self(),
     });
     audit("query", decision.allowed ? "allowed" : "denied", {
       claimType,
-      subject,
-      requester,
       detail: decision.reason,
+      requester,
+      subject,
     });
-    if (!decision.allowed) refuse(403, decision.reason);
+    if (!decision.allowed) {
+      refuse(403, decision.reason);
+    }
 
     const context = { request, subject };
     const rows = store
@@ -264,11 +273,10 @@ export function createIssuer({
       .filter(
         (row) =>
           row.claimType === claimType &&
-          matchWhere(row.claim, requestBinding(descriptor, request), context)
-            .ok,
+          matchWhere(row.claim, requestBinding(descriptor, request), context).ok
       );
     const live = rows.filter(
-      (row) => !row.revokedAt && Date.parse(row.expiresAt) > at,
+      (row) => !row.revokedAt && Date.parse(row.expiresAt) > at
     );
     const answer = live.length
       ? "valid"
@@ -277,9 +285,9 @@ export function createIssuer({
         : "none";
     return {
       answer,
+      checkedAt: new Date(at).toISOString(),
       claimType,
       subject,
-      checkedAt: new Date(at).toISOString(),
     };
   }
 
@@ -287,19 +295,22 @@ export function createIssuer({
   // authorised leader still only learns about their own club.
   function requestBinding(descriptor: Descriptor, request: Claim) {
     const bound: Claim = {};
-    for (const rule of descriptor.disclosure.requesters || [])
-      for (const expression of Object.values(rule.where || {}))
+    for (const rule of descriptor.disclosure.requesters || []) {
+      for (const expression of Object.values(rule.where || {})) {
         if (
           typeof expression === "string" &&
           expression.startsWith("$request.")
         ) {
-          const name = expression.slice("$request.".length);
+          const fieldName = expression.slice("$request.".length);
           if (
-            name in (descriptor.claim.properties || {}) &&
-            request[name] !== undefined
-          )
-            bound[name] = request[name];
+            fieldName in (descriptor.claim.properties || {}) &&
+            request[fieldName] !== undefined
+          ) {
+            bound[fieldName] = request[fieldName];
+          }
         }
+      }
+    }
     return bound;
   }
 
@@ -310,8 +321,9 @@ export function createIssuer({
     requester = {},
   }: RevokeRequest) {
     const at = now();
-    if (!id && (!subject || !claimType))
+    if (!id && (!subject || !claimType)) {
       refuse(400, "Oppgi id eller subject og claimType.");
+    }
     const existing = id ? store.get(id) : undefined;
     const rows = id
       ? existing
@@ -320,24 +332,25 @@ export function createIssuer({
       : subject && claimType
         ? store.active(subject, claimType, new Date(at).toISOString())
         : [];
-    if (!rows.length)
+    if (!rows.length) {
       refuse(404, "Fant ingen gyldig attestasjon a trekke tilbake.");
+    }
     for (const row of rows) {
       const descriptor = claimTypes[row.claimType];
       const decision = await evaluateRequester(descriptor.issuance.requesters, {
-        requester,
-        subject: row.subject,
-        request: row.claim,
-        trustPolicy: self(),
         claimTypes,
         now: at,
+        request: row.claim,
+        requester,
+        subject: row.subject,
+        trustPolicy: self(),
       });
       if (!decision.allowed) {
         audit("revoke", "denied", {
           claimType: row.claimType,
-          subject: row.subject,
-          requester,
           detail: decision.reason,
+          requester,
+          subject: row.subject,
         });
         refuse(403, decision.reason);
       }
@@ -348,20 +361,20 @@ export function createIssuer({
         } catch (error) {
           audit("revoke", "error", {
             claimType: row.claimType,
-            subject: row.subject,
-            requester,
             detail: message(error),
+            requester,
+            subject: row.subject,
           });
         }
       }
       audit("revoke", "allowed", {
         claimType: row.claimType,
-        subject: row.subject,
-        requester,
         detail: decision.reason,
+        requester,
+        subject: row.subject,
       });
     }
-    return { revoked: true, count: rows.length };
+    return { count: rows.length, revoked: true };
   }
 
   // Status is signed, so it cannot be faked or suppressed between the issuer
@@ -375,7 +388,7 @@ export function createIssuer({
         : Date.parse(row.expiresAt) <= now()
           ? "expired"
           : "active";
-    return createStatus({ signer, issuer, id: String(id), state, now: now() });
+    return createStatus({ id: String(id), issuer, now: now(), signer, state });
   }
 
   function audit(
@@ -391,37 +404,33 @@ export function createIssuer({
       subject: string;
       requester?: Requester;
       detail?: string;
-    },
+    }
   ) {
     store.audit({
       action,
-      outcome,
       actor: actorOf(requester),
       claimType,
-      subject,
       detail: detail ? String(detail).slice(0, 500) : null,
+      outcome,
+      subject,
     });
   }
 
   const view = (payload: Payload) => ({
-    id: payload.id,
-    claimType: payload.claimType,
-    subject: payload.sub,
     claim: payload.claim,
-    issuedAt: payload.iat,
+    claimType: payload.claimType,
     expiresAt: payload.exp,
+    id: payload.id,
+    issuedAt: payload.iat,
     statusUrl: payload.status,
+    subject: payload.sub,
   });
 
   return {
-    issue,
-    query,
-    revoke,
-    status,
-    trustPolicy,
-    document: () =>
-      issuerDocument({ issuer, name, signer, claimTypes, repo, contact, demo }),
+    audit: (limit?: number) => store.recentAudit(limit),
     claimTypes: () => claimTypes,
+    document: () =>
+      issuerDocument({ claimTypes, contact, demo, issuer, name, repo, signer }),
     // Public claims only, with the signed record, so the holder can present one
     // as evidence when they ask the issuer something on their own authority.
     held: (subject: string) =>
@@ -429,27 +438,31 @@ export function createIssuer({
         .bySubject(subject)
         .filter((row) => claimTypes[row.claimType]?.visibility === "public")
         .map((row) => ({
-          id: row.id,
-          claimType: row.claimType,
           claim: row.claim,
-          issuedAt: row.issuedAt,
+          claimType: row.claimType,
           expiresAt: row.expiresAt,
-          revokedAt: row.revokedAt,
-          uri: row.uri,
+          id: row.id,
+          issuedAt: row.issuedAt,
           record: {
             $type: RECORD_TYPE,
-            version: 1,
             jws: row.jws,
+            version: 1,
             view: {
               claimType: row.claimType,
-              subject: row.subject,
-              issuer,
-              issuedAt: row.issuedAt,
               expiresAt: row.expiresAt,
+              issuedAt: row.issuedAt,
+              issuer,
+              subject: row.subject,
               ...(demo ? { demo: true } : {}),
             },
           },
+          revokedAt: row.revokedAt,
+          uri: row.uri,
         })),
-    audit: (limit?: number) => store.recentAudit(limit),
+    issue,
+    query,
+    revoke,
+    status,
+    trustPolicy,
   };
 }
