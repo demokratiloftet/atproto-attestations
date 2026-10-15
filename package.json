@@ -43,7 +43,7 @@
     "@loftet/auth": "file:vendor/loftet-auth-0.3.0.tgz"
   },
   "devDependencies": {
-    "@types/node": "24.19.1",
+    "@types/node": "26.6.5",
     "oxfmt": "0.71.0",
     "oxlint": "1.87.0",
     "oxlint-tsgolint": "7.0.2004",
