@@ -71,16 +71,16 @@ export class PilotRepository implements Repository {
     ];
     const person = enrolled.find((p) => p.handle === identifier);
     if (!person) {
-      refuse("Ugyldig demokonto eller passord.", 401);
+      refuse("Invalid demo account or password.", 401);
     }
     const agent = this.newAgent();
     try {
       await agent.login({ identifier, password });
     } catch {
-      refuse("Ugyldig demokonto eller passord.", 401);
+      refuse("Invalid demo account or password.", 401);
     }
     if (agent.session?.did !== person.did) {
-      refuse("Kontokoblingen stemmer ikke.", 403);
+      refuse("The account identity does not match.", 403);
     }
     this.agents.set(person.did, agent);
     return { did: person.did, handle: person.handle };
@@ -93,7 +93,7 @@ export class PilotRepository implements Repository {
     if (!agent) {
       const session = this.store.get<AtpSessionData>("pilot-pds", did);
       if (!session) {
-        refuse("Logg inn igjen for å fullføre publiseringen.", 409);
+        refuse("Sign in again to complete publication.", 409);
       }
       agent = this.newAgent();
       await agent.resumeSession(session);

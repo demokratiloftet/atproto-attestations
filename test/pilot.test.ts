@@ -172,16 +172,16 @@ void test("organisation initiated requires subject acceptance", async (t) => {
   const p = await service.propose(reviewer, terms());
   assert.equal(p.subjectApproved, false);
   assert.equal(repo.records.size, 0);
-  await assert.rejects(service.approve(outsider, p.id, 1), /tilgang/u);
+  await assert.rejects(service.approve(outsider, p.id, 1), /access/u);
   const a = await service.approve(alice, p.id, 1);
   assert.equal((await service.verify(a)).valid, true);
 });
 void test("cannot appoint yourself, approve yourself or act for another organisation", async (t) => {
   const { service, terms } = await setup(t);
-  await assert.rejects(service.propose(outsider, terms()), /vegne/u);
+  await assert.rejects(service.propose(outsider, terms()), /on behalf/u);
   await assert.rejects(
     service.propose(reviewer, terms(alice, otherOrg)),
-    /vegne/u
+    /on behalf/u
   );
   const p = await service.propose(reviewer, terms(reviewer));
   await service.approve(reviewer, p.id, 1);
@@ -201,7 +201,7 @@ void test("role change invalidates old acceptance and grants; stale forms refuse
   assert.equal(next.subjectApproved, false);
   assert.equal((await service.verify(p)).valid, false);
   assert.equal(await service.permission(alice, org, "*"), undefined);
-  await assert.rejects(service.approve(alice, p.id, 1), /endret/u);
+  await assert.rejects(service.approve(alice, p.id, 1), /has changed/u);
   assert.equal((await service.approve(alice, p.id, 2)).state, "active");
 });
 void test("subject and organisation are immutable on edits", async (t) => {
@@ -209,7 +209,7 @@ void test("subject and organisation are immutable on edits", async (t) => {
   const p = await service.propose(alice, terms());
   await assert.rejects(
     service.change(alice, p.id, 1, { ...p.terms, subject: outsider }),
-    /byttes/u
+    /cannot be changed/u
   );
 });
 void test("decline remains private and cannot later be approved", async (t) => {
@@ -218,7 +218,10 @@ void test("decline remains private and cannot later be approved", async (t) => {
   await service.end(reviewer, p.id, 1, "declined");
   assert.equal(repo.records.size, 0);
   assert.equal((await service.view()).publicCredentials.length, 0);
-  await assert.rejects(service.approve(reviewer, p.id, 1), /godkjennes/u);
+  await assert.rejects(
+    service.approve(reviewer, p.id, 1),
+    /cannot be approved/u
+  );
 });
 void test("unknown publication outcome retries same two keys and survives service restart", async (t) => {
   const s = await setup(t);
@@ -244,14 +247,14 @@ void test("unknown publication outcome retries same two keys and survives servic
 void test("affiliation does not grant publishing; explicit grant is required", async (t) => {
   const { service, active, grant, event, repo } = await setup(t);
   const p = await active();
-  await assert.rejects(service.publishEvent(alice, event()), /fullmakt/u);
+  await assert.rejects(service.publishEvent(alice, event()), /permission/u);
   await assert.rejects(
     service.grant(alice, p.id, 1, {
       action: "events.publish",
       expiresAt: p.terms.expiresAt,
       scope: "*",
     }),
-    /Bare/u
+    /Only/u
   );
   await grant(p);
   const e = await service.publishEvent(alice, event());
@@ -262,22 +265,25 @@ void test("affiliation does not grant publishing; explicit grant is required", a
 void test("copied credential, wrong org and wrong scope never authorise", async (t) => {
   const { service, active, grant, event } = await setup(t);
   await grant(await active());
-  await assert.rejects(service.publishEvent(outsider, event()), /fullmakt/u);
+  await assert.rejects(service.publishEvent(outsider, event()), /permission/u);
   await assert.rejects(
     service.publishEvent(alice, event(otherOrg)),
-    /fullmakt/u
+    /permission/u
   );
   await assert.rejects(
     service.publishEvent(alice, event(org, "team:one")),
-    /fullmakt/u
+    /permission/u
   );
 });
 void test("grant revocation takes effect on the next action", async (t) => {
   const { service, active, grant, event } = await setup(t);
   const g = await grant(await active());
-  await assert.rejects(service.revokeGrant(otherReviewer, g.id), /Mangler/u);
+  await assert.rejects(
+    service.revokeGrant(otherReviewer, g.id),
+    /do not have permission/u
+  );
   await service.revokeGrant(reviewer, g.id);
-  await assert.rejects(service.publishEvent(alice, event()), /fullmakt/u);
+  await assert.rejects(service.publishEvent(alice, event()), /permission/u);
 });
 void test("subject withdrawal revokes affiliation and dependent permission", async (t) => {
   const { service, active, grant, event, repo } = await setup(t);
@@ -287,14 +293,14 @@ void test("subject withdrawal revokes affiliation and dependent permission", asy
   assert.equal(repo.records.size, 0);
   assert.equal((await service.view()).publicCredentials.length, 0);
   assert.equal((await service.verify(p)).valid, false);
-  await assert.rejects(service.publishEvent(alice, event()), /fullmakt/u);
+  await assert.rejects(service.publishEvent(alice, event()), /permission/u);
 });
 void test("expiry, missing acceptance, tampering and outage fail closed", async (t) => {
   const { service, active, grant, event, repo } = await setup(t);
   const p = await active();
   await grant(p);
   repo.unavailable = true;
-  await assert.rejects(service.publishEvent(alice, event()), /fullmakt/u);
+  await assert.rejects(service.publishEvent(alice, event()), /permission/u);
   repo.unavailable = false;
   assert.ok(p.acceptanceRef);
   const entry = repo.records.get(p.acceptanceRef.uri);
@@ -349,14 +355,14 @@ void test("unexpected input, unbounded lifetimes and unknown actions are refused
   const { service, terms, active } = await setup(t);
   await assert.rejects(
     service.propose(alice, { ...terms(), approved: true }),
-    /Ukjent/u
+    /Unknown/u
   );
   await assert.rejects(
     service.propose(alice, {
       ...terms(),
       expiresAt: new Date(Date.now() + 91 * 86_400_000).toISOString(),
     }),
-    /90 dager/u
+    /90 days/u
   );
   const p = await active();
   await assert.rejects(
@@ -365,7 +371,7 @@ void test("unexpected input, unbounded lifetimes and unknown actions are refused
       expiresAt: p.terms.expiresAt,
       scope: "*",
     }),
-    /Ukjent/u
+    /Unknown/u
   );
   await assert.rejects(
     service.grant(reviewer, p.id, 1, {
@@ -373,7 +379,7 @@ void test("unexpected input, unbounded lifetimes and unknown actions are refused
       expiresAt: new Date(Date.now() + 2 * 86_400_000).toISOString(),
       scope: "*",
     }),
-    /utløpe/u
+    /expire/u
   );
 });
 void test("revocation is ordered ahead of subsequent queued actions", async (t) => {
@@ -385,7 +391,7 @@ void test("revocation is ordered ahead of subsequent queued actions", async (t) 
   );
   const publish = service.exclusive(() => service.publishEvent(alice, event()));
   await revoke;
-  await assert.rejects(publish, /fullmakt/u);
+  await assert.rejects(publish, /permission/u);
 });
 void test("HTTP requires session and exact origin; cookies rotate; private state and login rate are protected", async (t) => {
   const { service, config, directory } = await setup(t);

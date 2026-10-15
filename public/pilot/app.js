@@ -1,3 +1,5 @@
+import { proposalTerms } from "./form.js";
+
 const $ = (s) => document.querySelector(s);
 const esc = (s) =>
   String(s ?? "").replaceAll(
@@ -14,44 +16,44 @@ const esc = (s) =>
 let editing;
 let orgId;
 let state;
-let tab = "overview";
+let tab = "affiliations";
 const labels = {
-  contractor: "Oppdragstaker",
-  electedRepresentative: "Folkevalgt",
-  employee: "Ansatt",
-  member: "Medlem",
-  volunteer: "Frivillig",
+  contractor: "Contractor",
+  electedRepresentative: "Elected representative",
+  employee: "Employee",
+  member: "Member",
+  volunteer: "Volunteer",
 };
 const statuses = {
-  active: "Bekreftet",
-  declined: "Avslått",
-  expired: "Utløpt",
-  pending: "Venter på godkjenning",
-  publishing: "Publisering venter",
-  revoked: "Trukket tilbake",
+  active: "Confirmed",
+  declined: "Declined",
+  expired: "Expired",
+  pending: "Awaiting approval",
+  publishing: "Publishing pending",
+  revoked: "Withdrawn",
 };
 const names = {
-  activated: "Tilknytning aktivert",
-  approved: "Versjon godkjent",
-  changed: "Nytt forslag til endring",
-  declined: "Forslag avslått",
-  "event-published": "Arrangement publisert",
-  "grant-created": "Fullmakt gitt",
-  "grant-revoked": "Fullmakt trukket tilbake",
-  proposed: "Forslag opprettet",
-  "publish-denied": "Publisering avvist",
-  "request-denied": "Forespørsel avvist",
-  revoked: "Tilknytning trukket tilbake",
-  superseded: "Tidligere versjon avsluttet",
+  activated: "Affiliation activated",
+  approved: "Version approved",
+  changed: "Changes proposed",
+  declined: "Proposal declined",
+  "event-published": "Event published",
+  "grant-created": "Publishing access granted",
+  "grant-revoked": "Publishing access removed",
+  proposed: "Proposal created",
+  "publish-denied": "Publishing denied",
+  "request-denied": "Request denied",
+  revoked: "Affiliation withdrawn",
+  superseded: "Previous version ended",
 };
 const date = (s) =>
-  new Date(s).toLocaleDateString("nb-NO", {
+  new Date(s).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 const dt = (s) =>
-  new Date(s).toLocaleString("nb-NO", {
+  new Date(s).toLocaleString("en-GB", {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -81,14 +83,14 @@ async function api(path, body) {
   );
   const data = await r.json();
   if (!r.ok) {
-    throw new Error(data.error ?? "Kunne ikke fullføre.");
+    throw new Error(data.error ?? "Could not complete the request.");
   }
   return data;
 }
 function onAsync(target, name, handler) {
   target.addEventListener(name, (event) => {
     handler(event).catch((error) => {
-      notice(error.message ?? "Forespørselen feilet.", true);
+      notice(error.message ?? "The request failed.", true);
     });
   });
 }
@@ -97,115 +99,267 @@ function notice(message, error = false) {
     `<div class="notice ${error ? "error" : ""}">${esc(message)}</div>`;
 }
 async function refresh() {
-  state = await api("/api/state");
-  orgId = state.organisations.some((o) => o.did === orgId)
-    ? orgId
-    : state.organisations[0]?.did;
-  render();
+  $("#content").setAttribute("aria-busy", "true");
+  try {
+    state = await api("/api/state");
+    orgId = state.organisations.some((o) => o.did === orgId)
+      ? orgId
+      : state.organisations[0]?.did;
+    render();
+  } finally {
+    $("#content").setAttribute("aria-busy", "false");
+  }
 }
 function empty(title, detail) {
   return `<div class="empty"><strong>${title}</strong>${detail}</div>`;
 }
-function approvalLine(approved, label) {
-  return `<span class="${approved ? "yes" : ""}">${approved ? "✓" : "○"} ${label} ${approved ? "har godkjent" : "venter"}</span>`;
+const scopeLabel = (scope) => (scope === "*" ? "Whole organisation" : scope);
+function currentProposals() {
+  return state.proposals.filter(
+    (proposal) => proposal.terms.organisationDid === orgId
+  );
 }
-function canApprove(proposal, isMine, canReview) {
-  return isMine
-    ? !proposal.subjectApproved
-    : canReview && !proposal.organisationApprovedBy;
+function publicProposals() {
+  return state.publicCredentials.filter(
+    (proposal) => proposal.terms.organisationDid === orgId
+  );
 }
-function credentialActions(proposal, status, publicOnly) {
-  const actions = [];
-  const isMine = state.person?.did === proposal.terms.subject;
-  const canReview = organisation()?.canReview;
+function proposalStatus(proposal) {
+  if (["revoked", "declined"].includes(proposal.state)) {
+    return proposal.state;
+  }
+  if (Date.parse(proposal.terms.expiresAt) <= Date.now()) {
+    return "expired";
+  }
   if (proposal.verification.valid) {
-    actions.push(button("verify", "Se kontrollen", proposal.id));
+    return "active";
   }
-  if (publicOnly) {
-    return actions.join("");
+  return ["pending", "publishing"].includes(proposal.state)
+    ? proposal.state
+    : "unavailable";
+}
+function needsApproval(proposal) {
+  if (proposalStatus(proposal) !== "pending") {
+    return false;
   }
-  if (status === "pending" && canApprove(proposal, isMine, canReview)) {
-    actions.push(
-      button(
-        "approve",
-        `Godkjenn versjon ${proposal.revision}`,
-        proposal.id,
-        'class="primary"'
-      )
-    );
-  }
-  if (["pending", "active", "publishing"].includes(status)) {
-    actions.push(button("change", "Foreslå endring", proposal.id));
-  }
+  return proposal.terms.subject === state.person?.did
+    ? !proposal.subjectApproved
+    : organisation().canReview && !proposal.organisationApprovedBy;
+}
+function activeGrant(grant, proposal) {
+  return (
+    proposal?.verification.valid &&
+    !grant.revoked &&
+    grant.action === "events.publish" &&
+    grant.proposalId === proposal.id &&
+    grant.proposalRevision === proposal.revision &&
+    grant.subject === proposal.terms.subject &&
+    grant.organisationDid === proposal.terms.organisationDid &&
+    grant.scope === proposal.terms.scope &&
+    Date.parse(grant.expiresAt) > Date.now()
+  );
+}
+function grantFor(proposal) {
+  return state.grants.find((grant) => activeGrant(grant, proposal));
+}
+function statusLabel(proposal, status) {
   if (status === "pending") {
-    actions.push(button("decline", "Avslå", proposal.id));
+    if (needsApproval(proposal)) {
+      return "Waiting for you";
+    }
+    return proposal.subjectApproved
+      ? "Waiting for organisation"
+      : "Waiting for person";
+  }
+  return statuses[status] ?? "Cannot verify";
+}
+function nextStep(proposal, status) {
+  if (status === "pending") {
+    if (needsApproval(proposal)) {
+      return "Review the role and terms. Your approval will confirm this affiliation.";
+    }
+    return proposal.subjectApproved
+      ? `${organisation().name} needs to approve. No action is needed from you.`
+      : `${person(proposal.terms.subject)} needs to approve. The affiliation is not active yet.`;
   }
   if (status === "publishing") {
-    actions.push(button("retry", "Prøv publisering igjen", proposal.id));
+    return "Both parties have approved. Publication is pending. Refresh the status or try again.";
   }
-  if (["active", "publishing"].includes(status)) {
+  if (status === "unavailable") {
+    return Date.parse(proposal.terms.validFrom) > Date.now()
+      ? `Starts on ${dt(proposal.terms.validFrom)}. No access before then.`
+      : "Verification failed. Publishing access is paused. Refresh the status to try again.";
+  }
+  return "";
+}
+function primaryActions(proposal, status, publicOnly) {
+  if (publicOnly) {
+    return proposal.verification.valid
+      ? button("verify", "View proof", proposal.id)
+      : "";
+  }
+  if (needsApproval(proposal)) {
+    return (
+      button("approve", "Approve affiliation", proposal.id, 'class="primary"') +
+      button("decline", "Decline", proposal.id)
+    );
+  }
+  if (status === "publishing") {
+    return button("retry", "Try again", proposal.id);
+  }
+  if (
+    proposal.verification.valid &&
+    organisation().canReview &&
+    !grantFor(proposal)
+  ) {
+    return button("grant", "Grant publishing access", proposal.id);
+  }
+  return "";
+}
+function moreActions(proposal, status, publicOnly) {
+  if (publicOnly || ["declined", "revoked", "expired"].includes(status)) {
+    return "";
+  }
+  const actions = [button("change", "Propose changes", proposal.id)];
+  if (proposal.verification.valid) {
+    actions.push(button("verify", "View proof", proposal.id));
+  }
+  const grant = grantFor(proposal);
+  if (grant && organisation().canReview) {
+    actions.push(button("revoke-grant", "Remove publishing access", grant.id));
+  }
+  if (status === "pending" && !needsApproval(proposal)) {
+    actions.push(button("decline", "Cancel request", proposal.id));
+  }
+  if (["active", "publishing"].includes(proposal.state)) {
     actions.push(
       button(
         "revoke",
-        isMine ? "Trekk tilbake samtykke" : "Avslutt tilknytning",
+        "End affiliation and access",
         proposal.id,
         'class="danger"'
       )
     );
   }
-  if (proposal.verification.valid && canReview) {
-    actions.push(button("grant", "Gi publiseringsfullmakt", proposal.id));
+  return `<details class="more-actions"><summary>More actions</summary><div class="actions">${actions.join("")}</div></details>`;
+}
+function accessLine(proposal) {
+  const grant = grantFor(proposal);
+  return `<p class="access ${grant ? "yes" : ""}">${grant ? `✓ Can publish events until ${date(grant.expiresAt)}` : "No publishing access"}</p>`;
+}
+function approvalProgress(proposal) {
+  if (!["pending", "publishing"].includes(proposalStatus(proposal))) {
+    return "";
   }
-  return actions.join("");
+  const steps = [
+    ["Person", proposal.subjectApproved],
+    ["Organisation", !!proposal.organisationApprovedBy],
+  ];
+  return `<ul class="approval-progress" aria-label="Approvals">${steps.map(([label, approved]) => `<li class="${approved ? "yes" : ""}"><span aria-hidden="true">${approved ? "✓" : "○"}</span> ${label}: ${approved ? "approved" : "pending"}</li>`).join("")}</ul>`;
 }
 function credential(proposal, publicOnly = false) {
   const { terms } = proposal;
-  const { valid } = proposal.verification;
-  const status =
-    Date.parse(terms.expiresAt) <= Date.now()
-      ? "expired"
-      : (proposal.state ?? (valid ? "active" : "unavailable"));
-  const pill = valid
-    ? ""
-    : ["pending", "publishing"].includes(status)
-      ? "pending"
-      : "inactive";
-  const label = valid
-    ? "Bekreftet"
-    : (statuses[status] ?? "Kan ikke bekreftes");
+  const status = proposalStatus(proposal);
+  const closed = ["revoked", "declined", "expired"].includes(status);
   const name =
-    publicOnly && !state.person ? "Demokonto" : person(terms.subject);
-  const approvals = publicOnly
+    publicOnly && !state.person ? "Demo account" : person(terms.subject);
+  const message = publicOnly ? "" : nextStep(proposal, status);
+  const access = !publicOnly && status === "active" ? accessLine(proposal) : "";
+  const primary = primaryActions(proposal, status, publicOnly);
+  const details = moreActions(proposal, status, publicOnly);
+  const from =
+    Date.parse(terms.validFrom) > Date.now()
+      ? `From ${dt(terms.validFrom)} · `
+      : "";
+  return `<article class="card ${closed ? "closed" : ""} ${needsApproval(proposal) ? "attention" : ""}" data-proposal="${esc(proposal.id)}">
+    <div class="card-top"><div><h3>${esc(terms.roleLabel)}</h3><p class="person-line">${esc(name)} · ${esc(labels[terms.relationship])}</p></div><span class="pill ${status === "active" ? "" : closed ? "inactive" : "pending"}">${esc(statusLabel(proposal, status))}</span></div>
+    <p class="metadata">${esc(scopeLabel(terms.scope))} · ${from}Until ${date(terms.expiresAt)} · ${terms.visibility === "public" ? "Public" : "Private"}</p>
+    ${publicOnly ? "" : approvalProgress(proposal)}${message ? `<p class="next-step">${esc(message)}</p>` : ""}${proposal.error ? `<p class="form-error">${esc(proposal.error)}</p>` : ""}${access}
+    ${primary || details ? `<div class="card-actions">${primary ? `<div class="actions">${primary}</div>` : ""}${details}</div>` : ""}</article>`;
+}
+function affiliationsView() {
+  const proposals = currentProposals();
+  const current = proposals.filter(
+    (p) => !["revoked", "declined", "expired"].includes(proposalStatus(p))
+  );
+  const archived = proposals.filter((p) =>
+    ["revoked", "declined", "expired"].includes(proposalStatus(p))
+  );
+  current.sort((a, b) => Number(needsApproval(b)) - Number(needsApproval(a)));
+  const waiting = current.filter(needsApproval).length;
+  const heading = organisation().canReview
+    ? "Organisation affiliations"
+    : "My affiliations";
+  return `<div class="section-heading"><h1>${heading}</h1><span class="muted">${waiting ? `${waiting} awaiting your approval` : `${current.length} current`}</span></div>
+    <div class="cards">${current.map((p) => credential(p)).join("") || empty("No current affiliations", "Choose “New affiliation” to send a proposal for approval.")}</div>
+    ${archived.length ? `<details class="archive"><summary>Ended affiliations (${archived.length})</summary><div class="cards">${archived.map((p) => credential(p)).join("")}</div></details>` : ""}`;
+}
+function publicView() {
+  const proposals = publicProposals();
+  return `<div class="section-heading"><h1>Public affiliations</h1><span class="muted">${proposals.filter((p) => p.verification.valid).length} confirmed</span></div>
+    <div class="cards">${proposals.map((p) => credential(p, true)).join("") || empty("No public affiliations", "An affiliation appears here once both parties approve and choose public visibility.")}</div>`;
+}
+function eventScopes() {
+  return organisation().scopes.filter((scope) =>
+    state.grants.some(
+      (grant) =>
+        grant.subject === state.person?.did &&
+        grant.organisationDid === orgId &&
+        grant.scope === scope &&
+        currentProposals().some((proposal) => activeGrant(grant, proposal))
+    )
+  );
+}
+function eventForm(scopes) {
+  return `<details class="event-create"><summary>Publish event</summary><form id="event-form" class="card">
+    <p class="muted">Publishing for ${esc(organisation().name)}.</p><label>Title<input name="title" maxlength="180" placeholder="E.g. open workshop" required></label>
+    <div class="form-grid"><label>When?<input name="startsAt" type="datetime-local" value="${localInput(new Date(Date.now() + 86_400_000))}" required></label>
+    <label ${scopes.length === 1 ? "hidden" : ""}>Scope<select name="scope">${scopes.map((scope) => `<option value="${esc(scope)}">${esc(scopeLabel(scope))}</option>`).join("")}</select></label></div>
+    <p class="fineprint">${scopes.length === 1 ? `${esc(scopeLabel(scopes[0]))}. ` : ""} Publishing access is checked when you submit.</p>
+    <p id="event-error" class="form-error" role="alert"></p><button class="primary" type="submit">Publish event</button></form></details>`;
+}
+function eventsView() {
+  const events = state.events.filter(
+    (event) => event.organisationDid === orgId
+  );
+  const scopes = eventScopes();
+  const access = !state.person
     ? ""
-    : `<div class="approvals">${approvalLine(proposal.subjectApproved, "Personen")}${approvalLine(proposal.organisationApprovedBy, "Organisasjonen")}</div>`;
-  const error = proposal.error
-    ? `<p class="form-error">${esc(proposal.error)}</p>`
-    : "";
-  return `<article class="card"><div class="card-top"><div class="card-person"><span class="avatar">${esc((name || "P").slice(0, 1))}</span><div><h3>${esc(terms.roleLabel)}</h3><p>${esc(name)} · ${esc(labels[terms.relationship])}</p></div></div><span class="pill ${pill}">${esc(label)}</span></div><div class="metadata"><span>Område <b>${esc(terms.scope === "*" ? "Hele organisasjonen" : terms.scope)}</b></span><span>Til <b>${date(terms.expiresAt)}</b></span><span>${terms.visibility === "public" ? "Offentlig" : "Privat"} · versjon ${proposal.revision}</span></div>${approvals}${error}<div class="actions">${credentialActions(proposal, status, publicOnly)}</div></article>`;
+    : scopes.length
+      ? eventForm(scopes)
+      : '<p class="access-note">You do not have publishing access here. The organisation must grant access through a confirmed affiliation.</p>';
+  return `<div class="section-heading"><h1>Events</h1><span class="muted">${events.length} published</span></div>${access}<div class="cards">${events.map((event) => `<article class="event-row"><time>${dt(event.startsAt)}</time><div><h3>${esc(event.title)}</h3><p class="metadata">${esc(scopeLabel(event.scope))}</p></div></article>`).join("") || empty("No events yet", "People with publishing access can post events for the organisation.")}</div>`;
+}
+function historyView() {
+  const history = state.history.filter((row) => row.org === orgId || !row.org);
+  return `<div class="section-heading"><h1>History</h1></div><div class="history-list">${history.map((row) => `<div class="audit-row"><time>${dt(row.at)}</time><span>${esc(names[row.action] ?? row.action)}</span><span>${esc(row.actor === "workflow" ? "Service" : person(row.actor))}</span></div>`).join("") || empty("No activity yet", "Approvals and changes appear here.")}</div>`;
 }
 function render() {
   const org = organisation();
   $("#organisation").innerHTML = state.organisations
-    .map((o) => `<option value="${esc(o.did)}">${esc(o.name)}</option>`)
+    .map((row) => `<option value="${esc(row.did)}">${esc(row.name)}</option>`)
     .join("");
   $("#organisation").value = orgId;
   $("#account").innerHTML = state.person
-    ? `<span class="identity-label">${esc(state.person.name)}</span><button data-action="logout">Logg ut</button>`
-    : '<button data-action="login">Logg inn</button>';
+    ? `<span class="identity-label">${esc(state.person.name)}</span><button data-action="logout">Sign out</button>`
+    : '<button data-action="login" class="primary">Sign in</button>';
   $("#new-proposal").hidden = !state.person;
+  $("#workspace-hint").textContent = state.person
+    ? org.canReview
+      ? "You approve for the organisation. The person must also approve."
+      : "Propose your role. The organisation confirms the affiliation."
+    : "View public affiliations, or sign in to propose and approve an affiliation.";
+  const waiting = currentProposals().filter(needsApproval).length;
   const tabs = [
-    ["overview", "Oversikt"],
     ...(state.person
-      ? [
-          ["requests", "Forespørsler"],
-          ["permissions", "Fullmakter"],
-          ["publish", "Publiser"],
-          ["history", "Historikk"],
-        ]
+      ? [["affiliations", `Affiliations${waiting ? ` (${waiting})` : ""}`]]
       : []),
+    ["public", "Public"],
+    ["events", "Events"],
+    ...(state.person ? [["history", "History"]] : []),
   ];
   if (!tabs.some(([id]) => id === tab)) {
-    tab = "overview";
+    tab = state.person ? "affiliations" : "public";
   }
   $("#tabs").innerHTML = tabs
     .map(
@@ -213,259 +367,292 @@ function render() {
         `<button data-tab="${id}" class="${tab === id ? "active" : ""}" aria-current="${tab === id ? "page" : "false"}">${title}</button>`
     )
     .join("");
-  const proposals = state.proposals.filter(
-    (p) => p.terms.organisationDid === orgId
-  );
-  const pub = state.publicCredentials.filter(
-    (p) => p.terms.organisationDid === orgId
-  );
-  const grants = state.grants.filter((g) => g.organisationDid === orgId);
-  const events = state.events.filter((e) => e.organisationDid === orgId);
-  const intro = state.person
-    ? `<div class="account-note">${org.canReview ? "Du er innlogget som organisasjonens oppnevnte godkjenner." : "Du er innlogget som person. En tilknytning gir ikke automatisk publiseringstilgang."}</div>`
-    : "";
-  if (tab === "overview") {
-    $("#content").innerHTML =
-      `<div class="stats"><div class="stat"><span>Offentlige bekreftelser</span><strong>${pub.filter((p) => p.verification.valid).length}</strong></div><div class="stat"><span>${state.person ? "Venter på en part" : "To parter bekrefter"}</span><strong>${state.person ? proposals.filter((p) => p.state === "pending").length : "↔"}</strong></div><div class="stat"><span>Publiserte arrangementer</span><strong>${events.length}</strong></div></div><div class="split"><div><div class="section-heading"><h2>Offentlige bekreftelser</h2><span class="pill">${esc(org.domain ?? org.did)}</span></div><div class="cards">${pub.length ? pub.map((p) => credential(p, true)).join("") : empty("Ingen bekreftelser ennå", "En offentlig bekreftelse vises når begge parter har godkjent samme versjon.")}</div></div><aside class="info-panel"><p class="eyebrow">SLIK FUNGERER DET</p><h2>Fra påstand til bekreftelse</h2><div class="steps"><div class="step"><div><b>Én part foreslår</b><p>Person eller organisasjon velger rolle, område og varighet.</p></div></div><div class="step"><div><b>Begge godkjenner</b><p>Endringer må godkjennes på nytt. Bare felles versjon blir aktiv.</p></div></div><div class="step"><div><b>Fullmakt gis separat</b><p>Organisasjonen velger hvem som kan publisere. Tilgang kontrolleres på nytt ved bruk.</p></div></div></div></aside></div><div class="section-heading"><h2>Arrangementer fra ${esc(org.name)}</h2></div><div class="cards">${events.map((e) => `<article class="card"><div class="event-date">${dt(e.startsAt)}</div><h3>${esc(e.title)}</h3><p class="muted">${esc(e.scope === "*" ? "Hele organisasjonen" : e.scope)} · Publisert med kontrollert fullmakt</p><p class="technical">${esc(e.ref?.uri)}</p></article>`).join("") || empty("Ingen arrangementer", "En person med publiseringsfullmakt kan opprette det første.")}</div>`;
-  }
-  if (tab === "requests") {
-    $("#content").innerHTML = `${
-      intro
-    }<div class="section-heading"><h2>${org.canReview ? "Organisasjonens forespørsler" : "Mine tilknytninger"}</h2><span class="muted">${proposals.length} totalt</span></div><div class="cards">${proposals.map((p) => credential(p)).join("") || empty("Klart for første forslag", "Velg «Ny tilknytning» for å starte fra personen eller organisasjonen.")}</div>`;
-  }
-  if (tab === "permissions") {
-    $("#content").innerHTML = `${
-      intro
-    }<div class="split"><div><h2>Publiseringsfullmakter</h2><p class="muted">En fullmakt gjelder én organisasjon, ett område og én bekreftet versjon.</p><div class="cards grant-list">${
-      grants
-        .map((g) => {
-          const active =
-            !g.revoked &&
-            Date.parse(g.expiresAt) > Date.now() &&
-            proposals.some(
-              (p) =>
-                p.id === g.proposalId &&
-                p.revision === g.proposalRevision &&
-                p.verification.valid
-            );
-          return `<article class="card"><div class="card-top"><div><h3>${esc(person(g.subject))}</h3><p class="muted">Publisere arrangementer</p></div><span class="pill ${active ? "" : "inactive"}">${active ? "Aktiv" : "Ikke aktiv"}</span></div><p class="muted">${esc(g.scope === "*" ? "Hele organisasjonen" : g.scope)} · til ${date(g.expiresAt)}</p>${org.canReview && !g.revoked ? `<div class="actions">${button("revoke-grant", "Trekk tilbake fullmakt", g.id, 'class="danger"')}</div>` : ""}</article>`;
-        })
-        .join("") ||
-      empty(
-        "Ingen fullmakter",
-        "Godkjenn en tilknytning, og gi deretter en egen publiseringsfullmakt fra forespørselen."
-      )
-    }</div></div><aside class="info-panel"><h2>Rolle og tilgang er to ting</h2><p class="muted">En bekreftet utviklerrolle gjør ikke personen til administrator. Denne piloten støtter handlingen «publisere arrangementer».</p><p class="muted">Fullmakten slutter å virke når den trekkes tilbake, utløper eller tilknytningen endres. Personer uten fullmakt får avslag fra serveren.</p></aside></div>`;
-  }
-  if (tab === "publish") {
-    $("#content").innerHTML = `${
-      intro
-    }<div class="split"><form id="event-form" class="card"><h2>Publiser et arrangement</h2><p class="muted">Publiseres på vegne av ${esc(org.name)} etter fersk kontroll av fullmakten din.</p><label>Tittel<input name="title" maxlength="180" placeholder="For eksempel: Åpen fagkveld" required></label><label>Start<input name="startsAt" type="datetime-local" value="${localInput(new Date(Date.now() + 86_400_000))}" required></label><label>Område<select name="scope">${org.scopes.map((s) => `<option value="${esc(s)}">${esc(s === "*" ? "Hele organisasjonen" : s)}</option>`).join("")}</select></label><p id="event-error" class="form-error" role="alert"></p><button class="primary full" type="submit">Kontroller fullmakt og publiser</button></form><aside class="info-panel"><p class="eyebrow">TILGANGSKONTROLL</p><h2>Hver publisering kontrolleres</h2><div class="steps"><div class="step"><div><b>Er dette din konto?</b><p>Serveren bruker innlogget DID, aldri en avsender oppgitt i skjemaet.</p></div></div><div class="step"><div><b>Er tilknytningen gyldig?</b><p>Begge godkjenninger, riktig versjon og gjeldende status må stemme.</p></div></div><div class="step"><div><b>Gjelder fullmakten her?</b><p>Organisasjon, område, handling og utløp kontrolleres før skriving.</p></div></div></div></aside></div>`;
-  }
-  if (tab === "history") {
-    $("#content").innerHTML = `${
-      intro
-    }<h2>Aktivitet</h2><p class="muted">Privat historikk for dine handlinger og organisasjoner du kan administrere.</p><div class="card">${
-      state.history
-        .filter((h) => h.org === orgId || !h.org)
-        .map(
-          (h) =>
-            `<div class="audit-row"><time>${dt(h.at)}</time><span>${esc(names[h.action] ?? h.action)}</span><span>${esc(h.actor === "workflow" ? "Tjenesten" : person(h.actor))}</span></div>`
-        )
-        .join("") || '<p class="muted">Ingen aktivitet ennå.</p>'
-    }</div>`;
-  }
+  const views = {
+    affiliations: affiliationsView,
+    events: eventsView,
+    history: historyView,
+    public: publicView,
+  };
+  $("#content").innerHTML = views[tab]();
 }
-function openProposal(p) {
-  editing = p;
+function roleCatalog() {
+  return [...currentProposals(), ...publicProposals()]
+    .filter((proposal) => proposal.verification.valid)
+    .map((proposal) => proposal.terms);
+}
+function updateProposalSummary() {
   const form = $("#proposal-form");
+  const { elements } = form;
+  const duration = elements.duration.value;
+  const expiry =
+    duration === "keep"
+      ? editing.terms.expiresAt
+      : new Date(Date.now() + Number(duration) * 86_400_000).toISOString();
+  $("#proposal-defaults").textContent =
+    `${labels[elements.relationship.value]} · ${scopeLabel(elements.scope.value)} · ${duration === "keep" ? `until ${date(expiry)}` : `${duration} days`}`;
+  $("#visibility-help").textContent = elements.public.checked
+    ? "The account and role become public. Others may copy the proof."
+    : "Only the person and the organisation’s approvers can see this affiliation.";
+  const subject = editing?.terms.subject ?? elements.subject.value;
+  const recipient =
+    subject === state.person.did
+      ? organisation().name
+      : subject
+        ? person(subject)
+        : "The selected person";
+  const start =
+    editing && Date.parse(editing.terms.validFrom) > Date.now()
+      ? dt(editing.terms.validFrom)
+      : "now";
+  $("#proposal-next").textContent =
+    `You approve when you send → ${recipient} approves next. Valid from ${start} until ${date(expiry)}.${editing ? " This change removes any publishing access and needs fresh approval." : ""}`;
+}
+function openProposal(proposal) {
+  editing = proposal;
+  const form = $("#proposal-form");
+  form.reset();
   const org = organisation();
-  $("#proposal-title").textContent = p ? "Foreslå endring" : "Ny tilknytning";
+  $("#proposal-title").textContent = proposal
+    ? "Propose changes"
+    : "New affiliation";
   $("#proposal-error").textContent = "";
+  $("#proposal-context").textContent = proposal
+    ? `${person(proposal.terms.subject)} · ${org.name}`
+    : `At ${org.name}`;
+  $("#subject-field").hidden = !!proposal || !org.canReview;
   const people = org.canReview
     ? state.people
-    : state.people.filter((personRow) => personRow.did === state.person.did);
-  $("#proposal-subject").innerHTML = people
-    .map(
-      (personRow) =>
-        `<option value="${esc(personRow.did)}">${esc(personRow.name)}</option>`
-    )
-    .join("");
-  $("#proposal-subject").disabled = !!p;
+    : state.people.filter((row) => row.did === state.person.did);
+  $("#proposal-subject").innerHTML =
+    `${org.canReview && !proposal ? '<option value="">Choose person</option>' : ""}${people.map((row) => `<option value="${esc(row.did)}">${esc(row.name)}</option>`).join("")}`;
+  $("#proposal-subject").disabled = !!proposal;
   $("#proposal-scope").innerHTML = org.scopes
     .map(
-      (s) =>
-        `<option value="${esc(s)}">${esc(s === "*" ? "Hele organisasjonen" : s)}</option>`
+      (scope) =>
+        `<option value="${esc(scope)}">${esc(scopeLabel(scope))}</option>`
     )
     .join("");
-  const values = p?.terms ?? {
-    expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+  $("#proposal-duration").innerHTML =
+    `${proposal ? `<option value="keep">Keep end date: ${date(proposal.terms.expiresAt)}</option>` : ""}<option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option>`;
+  $("#role-options").innerHTML = [
+    ...new Set(roleCatalog().map((terms) => terms.roleLabel)),
+  ]
+    .map((label) => `<option value="${esc(label)}"></option>`)
+    .join("");
+  const values = proposal?.terms ?? {
     relationship: "employee",
-    roleId: "",
     roleLabel: "",
-    scope: org.scopes[0],
-    subject: org.canReview
-      ? (people.find((personRow) => personRow.did !== state.person.did)?.did ??
-        state.person.did)
-      : state.person.did,
-    validFrom: new Date().toISOString(),
-    visibility: "public",
+    scope: org.scopes.includes("*") ? "*" : org.scopes[0],
   };
-  for (const [k, v] of Object.entries(values)) {
-    const el = form.elements.namedItem(k);
-    if (el) {
-      el.value =
-        k === "validFrom" || k === "expiresAt" ? localInput(new Date(v)) : v;
-    }
+  for (const key of ["relationship", "roleLabel", "scope"]) {
+    form.elements.namedItem(key).value = values[key];
   }
+  if (proposal) {
+    form.elements.subject.value = proposal.terms.subject;
+  }
+  form.elements.duration.value = proposal ? "keep" : "30";
+  form.elements.public.checked =
+    !proposal || proposal.terms.visibility === "public";
+  $("#proposal-options").open = false;
+  $("#proposal-submit").textContent = proposal
+    ? "Send changes for approval"
+    : "Send for approval";
+  updateProposalSummary();
   $("#proposal-dialog").showModal();
 }
-onAsync(document, "click", async (e) => {
-  const b = e.target.closest("button");
-  if (!b) {
+function showVerification(proposal) {
+  const { valid } = proposal.verification;
+  $("#verify-content").innerHTML =
+    `<p class="verification-result ${valid ? "yes" : "form-error"}">${valid ? "✓ Confirmed by both parties" : "Cannot verify right now"}</p><p>${esc(proposal.terms.roleLabel)} · ${esc(organisation().name)}</p><p class="metadata">${esc(scopeLabel(proposal.terms.scope))} · Until ${date(proposal.terms.expiresAt)}</p><p class="muted">${proposal.terms.visibility === "public" ? "The organisation’s signature and the person’s approval have been verified." : "Private approval is recorded by the service. Signature and status have been verified."}</p><details><summary>Technical details</summary>${proposal.verification.checks.map((check) => `<div class="check"><span class="${check.ok ? "yes" : "form-error"}">${check.ok ? "✓" : "×"}</span><div><strong>${esc(check.name)}</strong><small>${esc(check.detail ?? "Passed")}</small></div></div>`).join("")}<p class="technical">${esc(proposal.ref?.uri ?? "Private, not published")}<br>${esc(proposal.acceptanceRef?.uri ?? "")}</p>${proposal.terms.visibility === "public" ? `<a href="/api/credential?id=${encodeURIComponent(proposal.id)}" target="_blank" rel="noopener">Open proof bundle ↗</a>` : ""}</details>`;
+  $("#verify-dialog").showModal();
+}
+function approvalNotice(id) {
+  const proposal = state.proposals.find((row) => row.id === id);
+  if (!proposal) {
+    return "Approval recorded.";
+  }
+  const status = proposalStatus(proposal);
+  return status === "active"
+    ? `The affiliation is confirmed.${proposal.terms.visibility === "public" ? " It is now public." : " It is private."} Publishing access is granted separately.`
+    : nextStep(proposal, status);
+}
+async function openLogin() {
+  const demo = await api("/api/demo");
+  $("#login-handle").innerHTML = demo.accounts
+    .map(
+      (account) =>
+        `<option value="${esc(account.handle)}">${esc(account.name)}</option>`
+    )
+    .join("");
+  $("#login-error").textContent = "";
+  $("#login-dialog").showModal();
+}
+async function performAction(action, id, proposal) {
+  if (action === "refresh") {
+    await refresh();
+    notice("Status refreshed.");
     return;
   }
-  if ("close" in b.dataset) {
-    return b.closest("dialog").close();
+  if (action === "logout") {
+    await api("/api/logout", {});
+    tab = "public";
+  } else if (action === "revoke-grant") {
+    await api("/api/grants/revoke", { id });
+  } else if (action === "grant") {
+    await api("/api/grants", {
+      action: "events.publish",
+      expiresAt: proposal.terms.expiresAt,
+      id,
+      revision: proposal.revision,
+      scope: proposal.terms.scope,
+    });
+  } else {
+    await api(`/api/proposals/${action}`, { id, revision: proposal.revision });
   }
-  if (b.dataset.tab) {
-    ({ tab } = b.dataset);
+  await refresh();
+  const messages = {
+    decline: "Request closed. No access was granted.",
+    grant: `${proposal ? person(proposal.terms.subject) : "Person"} can now publish events for the organisation.`,
+    logout: "You are signed out.",
+    revoke: "Affiliation ended. Publishing access removed.",
+    "revoke-grant":
+      "Publishing access removed. The affiliation is still confirmed.",
+  };
+  notice(
+    ["approve", "retry"].includes(action)
+      ? approvalNotice(id)
+      : messages[action]
+  );
+}
+onAsync(document, "click", async (event) => {
+  const target = event.target.closest("button");
+  if (!target) {
+    return;
+  }
+  if ("close" in target.dataset) {
+    return target.closest("dialog").close();
+  }
+  if (target.dataset.tab) {
+    ({ tab } = target.dataset);
+    $("#notice").replaceChildren();
     return render();
   }
-  if (b.id === "new-proposal") {
+  if (target.id === "new-proposal") {
     return openProposal();
   }
-  const { action } = b.dataset;
-  const { id } = b.dataset;
+  const { action, id } = target.dataset;
   if (!action) {
     return;
   }
   if (action === "login") {
-    return $("#login-dialog").showModal();
+    target.disabled = true;
+    try {
+      await openLogin();
+    } finally {
+      target.disabled = false;
+    }
+    return;
   }
-  const p =
-    state.proposals.find((row) => row.id === id) ??
-    state.publicCredentials.find((row) => row.id === id);
+  const proposal =
+    state?.proposals.find((row) => row.id === id) ??
+    state?.publicCredentials.find((row) => row.id === id);
   if (action === "change") {
-    return openProposal(p);
+    return openProposal(proposal);
   }
   if (action === "verify") {
-    $("#verify-content").innerHTML =
-      `<p class="muted">${p.terms.visibility === "public" ? "Kontrollerer utstederens signatur og personens aksept fra signerte AT-repositorier." : "Privat godkjenning registrert av tjenesten; attestasjonsignaturen og status kontrolleres."}</p>${p.verification.checks.map((c) => `<div class="check"><span class="${c.ok ? "yes" : "form-error"}">${c.ok ? "✓" : "×"}</span><div><strong>${esc(c.name)}</strong><small>${esc(c.detail ?? "Bestått")}</small></div></div>`).join("")}<p class="technical">${esc(p.ref?.uri ?? "Privat, ikke publisert")}<br>${esc(p.acceptanceRef?.uri ?? "")}</p>${p.terms.visibility === "public" ? `<a href="/api/credential?id=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Åpne offentlig bevispakke ↗</a>` : ""}`;
-    return $("#verify-dialog").showModal();
+    return showVerification(proposal);
   }
-  b.disabled = true;
+  target.disabled = true;
   try {
-    if (action === "logout") {
-      await api("/api/logout", {});
-      tab = "overview";
-      notice("Du er logget ut.");
-    } else if (action === "revoke-grant") {
-      await api("/api/grants/revoke", { id });
-      notice("Fullmakten er trukket tilbake.");
-    } else if (action === "grant") {
-      await api("/api/grants", {
-        action: "events.publish",
-        expiresAt: p.terms.expiresAt,
-        id,
-        revision: p.revision,
-        scope: p.terms.scope,
-      });
-      notice("Publiseringsfullmakten er gitt.");
-      tab = "permissions";
-    } else {
-      await api(`/api/proposals/${action}`, { id, revision: p.revision });
-      notice(
-        {
-          approve: "Versjonen er godkjent.",
-          decline: "Forslaget er avslått.",
-          retry: "Publiseringen er forsøkt på nytt.",
-          revoke: "Tilknytningen og tilhørende fullmakter er avsluttet.",
-        }[action]
-      );
-    }
-    await refresh();
-  } catch (error) {
-    notice(error.message, true);
+    await performAction(action, id, proposal);
   } finally {
-    b.disabled = false;
+    target.disabled = false;
   }
 });
-$("#organisation").addEventListener("change", (e) => {
-  orgId = e.target.value;
+$("#organisation").addEventListener("change", (event) => {
+  orgId = event.target.value;
+  $("#notice").replaceChildren();
   render();
 });
-$("#login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const b = e.target.querySelector("[type=submit]");
-  b.disabled = true;
+$("#proposal-form").addEventListener("input", updateProposalSummary);
+$("#proposal-form").addEventListener("change", updateProposalSummary);
+onAsync($("#login-form"), "submit", async (event) => {
+  event.preventDefault();
+  const { target } = event;
+  const submit = target.querySelector("[type=submit]");
+  submit.disabled = true;
+  $("#login-error").textContent = "";
   try {
-    await api("/api/login", Object.fromEntries(new FormData(e.target)));
-    e.target.elements.password.value = "";
+    await api("/api/login", Object.fromEntries(new FormData(target)));
+    target.elements.password.value = "";
     $("#login-dialog").close();
-    tab = "requests";
+    tab = "affiliations";
+    $("#notice").replaceChildren();
     await refresh();
-    notice(`Innlogget som ${state.person.name}.`);
   } catch (error) {
     $("#login-error").textContent = error.message;
   } finally {
-    b.disabled = false;
+    submit.disabled = false;
   }
 });
-$("#proposal-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const b = e.target.querySelector("[type=submit]");
-  b.disabled = true;
+onAsync($("#proposal-form"), "submit", async (event) => {
+  event.preventDefault();
+  const { target } = event;
+  const submit = target.querySelector("[type=submit]");
+  submit.disabled = true;
+  $("#proposal-error").textContent = "";
   try {
-    const terms = Object.fromEntries(new FormData(e.target));
-    terms.subject = editing?.terms.subject ?? terms.subject;
-    terms.organisationDid = orgId;
-    terms.validFrom = new Date(terms.validFrom).toISOString();
-    terms.expiresAt = new Date(terms.expiresAt).toISOString();
-    await api(editing ? "/api/proposals/change" : "/api/proposals", {
-      ...(editing ? { id: editing.id, revision: editing.revision } : {}),
-      terms,
+    const fields = Object.fromEntries(new FormData(target));
+    fields.visibility = target.elements.public.checked ? "public" : "private";
+    const terms = await proposalTerms(fields, {
+      organisationDid: orgId,
+      previous: editing?.terms,
+      roles: roleCatalog(),
     });
+    const result = await api(
+      editing ? "/api/proposals/change" : "/api/proposals",
+      {
+        ...(editing ? { id: editing.id, revision: editing.revision } : {}),
+        terms,
+      }
+    );
     $("#proposal-dialog").close();
-    tab = "requests";
+    tab = "affiliations";
     await refresh();
-    notice("Forslaget er sendt til den andre parten.");
+    notice(`Sent for approval. ${approvalNotice(result.id)}`);
   } catch (error) {
     $("#proposal-error").textContent = error.message;
   } finally {
-    b.disabled = false;
+    submit.disabled = false;
   }
 });
-onAsync(document, "submit", async (e) => {
-  if (e.target.id !== "event-form") {
+onAsync(document, "submit", async (event) => {
+  if (event.target.id !== "event-form") {
     return;
   }
-  e.preventDefault();
-  const b = e.target.querySelector("[type=submit]");
-  b.disabled = true;
+  event.preventDefault();
+  const { target } = event;
+  const submit = target.querySelector("[type=submit]");
+  submit.disabled = true;
   try {
-    const input = Object.fromEntries(new FormData(e.target));
+    const input = Object.fromEntries(new FormData(target));
     input.organisationDid = orgId;
     input.startsAt = new Date(input.startsAt).toISOString();
     await api("/api/events", input);
-    tab = "overview";
     await refresh();
-    notice("Arrangementet er publisert på vegne av organisasjonen.");
+    notice(`Event published for ${organisation().name}.`);
   } catch (error) {
     $("#event-error").textContent = error.message;
   } finally {
-    b.disabled = false;
+    submit.disabled = false;
   }
 });
 try {
-  const demo = await api("/api/demo");
-  $("#login-handle").innerHTML = demo.accounts
-    .map(
-      (p) =>
-        `<option value="${esc(p.handle)}">${esc(p.name)} · ${esc(p.handle)}</option>`
-    )
-    .join("");
   await refresh();
 } catch (error) {
+  $("#content").innerHTML = empty(
+    "Could not load affiliations",
+    "Choose “Refresh” to try again."
+  );
   notice(error.message, true);
 }

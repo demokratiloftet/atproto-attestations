@@ -104,7 +104,7 @@ const terms = {
   organisationDid: org.did,
   relationship: "employee",
   roleId: "demo.smoke",
-  roleLabel: "Systemtest · syntetisk tilknytning",
+  roleLabel: "System test · synthetic affiliation",
   scope,
   subject: state.person.did,
   validFrom: new Date(now - 60_000).toISOString(),
@@ -114,7 +114,7 @@ const event = {
   organisationDid: org.did,
   scope: terms.scope,
   startsAt: new Date(now + 3_600_000).toISOString(),
-  title: "Systemtest · publisering med godkjent fullmakt",
+  title: "System test · publishing with approved access",
 };
 await request("/api/proposals", { terms }, undefined, 401);
 await request(
@@ -178,7 +178,7 @@ try {
   await request("/api/grants/revoke", { id: grantId }, sessions.reviewer);
   await request("/api/events", event, sessions.person, 403);
   await request("/api/grants", grant, sessions.reviewer);
-  const revised = { ...terms, roleLabel: "Systemtest · revidert rolle" };
+  const revised = { ...terms, roleLabel: "System test · revised role" };
   await request(
     "/api/proposals/change",
     { id, revision: 1, terms: revised },

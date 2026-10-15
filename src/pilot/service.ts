@@ -156,11 +156,11 @@ export class PilotService {
   async status(id: string) {
     const row = this.issued.get(id);
     if (!row) {
-      refuse("Ukjent attestasjon.", 404);
+      refuse("Unknown attestation.", 404);
     }
     const signing = this.signers.get(String(row.claim.organisationDid));
     if (!signing) {
-      refuse("Ukjent utsteder.", 404);
+      refuse("Unknown issuer.", 404);
     }
     let state = row.revokedAt
       ? "revoked"
@@ -236,13 +236,13 @@ export class PilotService {
       actor !== p.terms.subject &&
       !(await this.canReview(actor, p.terms.organisationDid))
     ) {
-      refuse("Du har ikke tilgang til dette forslaget.", 403);
+      refuse("You do not have access to this proposal.", 403);
     }
   }
   getProposal(id: string) {
     const p = this.store.proposal(id);
     if (!p) {
-      refuse("Forslaget finnes ikke.", 404);
+      refuse("Proposal not found.", 404);
     }
     return p;
   }
@@ -273,7 +273,7 @@ export class PilotService {
     await this.participant(actor, p);
     currentRevision(p, revision);
     if (!["pending", "active", "publishing"].includes(p.state)) {
-      refuse("Opprett et nytt forslag.", 409);
+      refuse("Create a new proposal.", 409);
     }
     const terms = parseTerms(
       input,
@@ -284,7 +284,7 @@ export class PilotService {
       terms.subject !== p.terms.subject ||
       terms.organisationDid !== p.terms.organisationDid
     ) {
-      refuse("Person og organisasjon kan ikke byttes.");
+      refuse("The person and organisation cannot be changed.");
     }
     await this.retire(p, actor, "superseded");
     const updated: Proposal = {
@@ -317,16 +317,19 @@ export class PilotService {
     await this.participant(actor, p);
     currentRevision(p, revision);
     if (!["pending", "publishing"].includes(p.state)) {
-      refuse("Forslaget kan ikke godkjennes nå.", 409);
+      refuse("The proposal cannot be approved right now.", 409);
     }
     if (Date.parse(p.terms.expiresAt) <= Date.now()) {
-      refuse("Forslaget er utløpt.", 409);
+      refuse("The proposal has expired.", 409);
     }
     if (actor === p.terms.subject) {
       p.subjectApproved = true;
     } else {
       if (!(await this.canReview(actor, p.terms.organisationDid))) {
-        refuse("Mangler godkjennerfullmakt.", 403);
+        refuse(
+          "You do not have permission to approve for this organisation.",
+          403
+        );
       }
       p.organisationApprovedBy = actor;
     }
@@ -350,10 +353,10 @@ export class PilotService {
       p.organisationApprovedBy === p.terms.subject ||
       !(await this.canReview(p.organisationApprovedBy, p.terms.organisationDid))
     ) {
-      refuse("Begge parter må godkjenne samme versjon.", 403);
+      refuse("Both parties must approve the same version.", 403);
     }
     if (Date.parse(p.terms.expiresAt) <= Date.now()) {
-      refuse("Forslaget er utløpt.", 409);
+      refuse("The proposal has expired.", 409);
     }
     if (!p.record) {
       const { subject, ...claim } = p.terms;
@@ -417,7 +420,7 @@ export class PilotService {
       this.store.put("proposal", p);
       this.store.audit("workflow", "activated", p.id, p.terms.organisationDid);
     } catch {
-      p.error = "Publisering venter. Logg inn igjen ved behov og prøv på nytt.";
+      p.error = "Publication is pending. Sign in again if needed, then retry.";
       this.store.put("proposal", p);
     }
   }
@@ -425,7 +428,7 @@ export class PilotService {
     const p = this.getProposal(id);
     await this.participant(actor, p);
     if (p.state !== "publishing") {
-      refuse("Ingen publisering venter.", 409);
+      refuse("No publication is pending.", 409);
     }
     await this.publish(p);
     return this.getProposal(id);
@@ -466,7 +469,7 @@ export class PilotService {
     await this.participant(actor, p);
     currentRevision(p, revision);
     if (action === "declined" && p.state !== "pending") {
-      refuse("Et aktivt forslag må trekkes tilbake.", 409);
+      refuse("An active affiliation must be withdrawn.", 409);
     }
     await this.retire(p, actor, action);
     return p;
@@ -529,17 +532,20 @@ export class PilotService {
     const p = this.getProposal(id);
     currentRevision(p, revision);
     if (!(await this.canReview(actor, p.terms.organisationDid))) {
-      refuse("Bare organisasjonens godkjenner kan gi fullmakt.", 403);
+      refuse(
+        "Only the organisation’s approver can grant publishing access.",
+        403
+      );
     }
     if (!(await this.verify(p)).valid) {
-      refuse("Tilknytningen kan ikke bekreftes.", 409);
+      refuse("The affiliation cannot be verified.", 409);
     }
     if (input.action !== ACTION) {
-      refuse("Ukjent handling.");
+      refuse("Unknown action.");
     }
     const scope = text(input, "scope");
     if (scope !== p.terms.scope) {
-      refuse("Fullmakten må gjelde tilknytningens område.");
+      refuse("Publishing access must match the affiliation’s scope.");
     }
     const expiry = Date.parse(text(input, "expiresAt"));
     if (
@@ -547,7 +553,7 @@ export class PilotService {
       expiry <= Date.now() ||
       expiry > Date.parse(p.terms.expiresAt)
     ) {
-      refuse("Fullmakten må utløpe senest samtidig med tilknytningen.");
+      refuse("Publishing access must expire no later than the affiliation.");
     }
     const existing = this.store
       .grants()
@@ -598,10 +604,13 @@ export class PilotService {
   async revokeGrant(actor: string, id: string) {
     const g = this.store.get("grant", id);
     if (!g) {
-      refuse("Fullmakten finnes ikke.", 404);
+      refuse("Publishing access grant not found.", 404);
     }
     if (!(await this.canReview(actor, g.organisationDid))) {
-      refuse("Mangler godkjennerfullmakt.", 403);
+      refuse(
+        "You do not have permission to approve for this organisation.",
+        403
+      );
     }
     g.revoked = true;
     this.store.put("grant", g);
@@ -646,15 +655,12 @@ export class PilotService {
     const startsAt = text(input, "startsAt");
     const date = Date.parse(startsAt);
     if (!Number.isFinite(date) || date <= Date.now()) {
-      refuse("Velg et fremtidig tidspunkt.");
+      refuse("Choose a future date and time.");
     }
     const grant = await this.permission(actor, org, scope);
     if (!grant) {
       this.store.audit(actor, "publish-denied", undefined, org);
-      refuse(
-        "Du har ingen gyldig fullmakt til å publisere i dette området.",
-        403
-      );
+      refuse("You do not have valid permission to publish in this scope.", 403);
     }
     const id = randomUUID();
     const createdAt = new Date().toISOString();

@@ -25,7 +25,7 @@ export function text(
     value.length > max ||
     containsControlCharacter(value)
   ) {
-    refuse(`Ugyldig ${key}.`);
+    refuse(`Invalid ${key}.`);
   }
   return value.trim();
 }
@@ -47,16 +47,16 @@ export function parseTerms(
     "visibility",
   ]);
   if (Object.keys(input).some((k) => !allowed.has(k))) {
-    refuse("Ukjent felt i forslaget.");
+    refuse("Unknown field in the proposal.");
   }
   const subject = text(input, "subject", 200);
   const organisationDid = text(input, "organisationDid", 200);
   if (!people.some((p) => p.did === subject)) {
-    refuse("Personen må være registrert i piloten.");
+    refuse("The person must be enrolled in the pilot.");
   }
   const org = orgs.find((o) => o.did === organisationDid);
   if (!org) {
-    refuse("Organisasjonen er ikke registrert.");
+    refuse("The organisation is not enrolled.");
   }
   const relationship = text(input, "relationship");
   if (
@@ -68,16 +68,16 @@ export function parseTerms(
       "electedRepresentative",
     ].includes(relationship)
   ) {
-    refuse("Ukjent tilknytningstype.");
+    refuse("Unknown relationship type.");
   }
   const roleId = text(input, "roleId");
   if (!/^[a-z][a-z0-9.-]{1,79}$/u.test(roleId)) {
-    refuse("Rolle-ID må være en stabil kode.");
+    refuse("The role ID must be a stable code.");
   }
   const roleLabel = text(input, "roleLabel");
   const scope = text(input, "scope");
   if (!org.scopes.includes(scope)) {
-    refuse("Ukjent område for organisasjonen.");
+    refuse("Unknown scope for this organisation.");
   }
   const validFrom = text(input, "validFrom");
   const expiresAt = text(input, "expiresAt");
@@ -91,10 +91,10 @@ export function parseTerms(
     end > now + 90 * 86_400_000 ||
     from < now - 86_400_000
   ) {
-    refuse("Velg gyldige datoer, maksimalt 90 dager frem i tid.");
+    refuse("Choose valid dates, no more than 90 days ahead.");
   }
   if (input.visibility !== "public" && input.visibility !== "private") {
-    refuse("Velg synlighet.");
+    refuse("Choose a visibility setting.");
   }
   return {
     expiresAt: new Date(end).toISOString(),
@@ -115,7 +115,7 @@ export function newProposal(
   now = Date.now()
 ): Proposal {
   if (actor !== terms.subject && !orgApprover) {
-    refuse("Du kan ikke foreslå på vegne av denne organisasjonen.", 403);
+    refuse("You cannot propose on behalf of this organisation.", 403);
   }
   return {
     createdAt: new Date(now).toISOString(),
@@ -132,7 +132,7 @@ export function newProposal(
 }
 export function currentRevision(p: Proposal, input: unknown) {
   if (input !== p.revision) {
-    refuse("Forslaget er endret. Last inn på nytt før du godkjenner.", 409);
+    refuse("The proposal has changed. Refresh before approving.", 409);
   }
 }
 export function live(p: Proposal, now = Date.now()) {

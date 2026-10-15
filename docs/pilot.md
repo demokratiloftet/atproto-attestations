@@ -4,6 +4,14 @@ The demo runs at **https://tilknytning.hackaton.demokratiloftet.no**. All person
 
 ## Try the demo
 
+Credentials are in the operator's private files, not on the website:
+
+- Operator checkout: `.runtime/vps-demo-logins.json` (hosted demo accounts).
+- VPS: `/root/affiliation-pilot/.runtime/demo-logins.json`.
+- Local previews: the `logins.json` path printed by `pnpm pilot:preview`. These accounts only work in that preview.
+
+Select a named account in **Sign in** and use its password from the matching file. Never copy the passwords into source, chat, screenshots or a presentation.
+
 The operator's private login sheet contains four separate accounts:
 
 - Emil: person, with an accepted Devotta developer affiliation and publishing grant.
@@ -12,6 +20,8 @@ The operator's private login sheet contains four separate accounts:
 - Kari: approver for a separate synthetic sports club. She has no authority over Devotta.
 
 Sign in as Maja and accept the invitation; Nina can then grant permission. Maja can publish an event under the exact organisation/scope. Withdraw the affiliation or revoke its grant and the next protected action is denied. Use separate browser profiles to demonstrate both parties. A person can also initiate a proposal. Changes reset the other party's approval and invalidate the previous version's grants. The public proof viewer explains signature, status and matching acceptance.
+
+In the simplified interface, use **Affiliations → Approve affiliation**, then Nina's **Grant publishing access**, then Maja's **Events → Publish event**. Use **Refresh** after the other account acts. Revocation and changes are under **More actions**. A new proposal only asks for a role (and a recipient when acting for an organisation); **More options** exposes relationship, scope and duration, with the current defaults always visible. Public visibility remains an explicit checkbox.
 
 A private affiliation can grant permissions without publishing employment data. Public events contain the organisation and event details; actor and grant references stay in the private audit trail so private employment is not exposed through events.
 

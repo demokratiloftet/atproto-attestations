@@ -26,6 +26,7 @@ const assets = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/assets/pilot.css", ["pilot.css", "text/css"]],
   ["/assets/pilot.js", ["app.js", "text/javascript"]],
+  ["/assets/form.js", ["form.js", "text/javascript"]],
 ]);
 function send(response: ServerResponse, status: number, data: unknown) {
   response.writeHead(status, {
@@ -40,7 +41,7 @@ function sendError(response: ServerResponse, error: unknown) {
     typeof error.status === "number"
       ? error.status
       : 500;
-  let message = "Ugyldig forespørsel.";
+  let message = "Invalid request.";
   if (error instanceof Error) {
     ({ message } = error);
   }
@@ -49,7 +50,7 @@ function sendError(response: ServerResponse, error: unknown) {
       "Pilot operation failed",
       error instanceof Error ? error.name : "UnknownError"
     );
-    message = "Tjenesten kunne ikke fullføre. Prøv igjen.";
+    message = "The service could not complete the request. Try again.";
   }
   if (response.headersSent) {
     response.destroy();
@@ -72,11 +73,11 @@ async function readInput(request: IncomingMessage): Promise<Input> {
   for await (const value of request) {
     const chunk: unknown = value;
     if (!Buffer.isBuffer(chunk)) {
-      refuse("Ugyldig innhold.");
+      refuse("Invalid content.");
     }
     size += chunk.length;
     if (size > 8192) {
-      refuse("Forespørselen er for stor.", 413);
+      refuse("The request is too large.", 413);
     }
     chunks.push(chunk);
   }
@@ -84,7 +85,7 @@ async function readInput(request: IncomingMessage): Promise<Input> {
     const input: unknown = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
     return object(input, "request");
   } catch {
-    return refuse("Ugyldig JSON.");
+    return refuse("Invalid JSON.");
   }
 }
 function mutationRoutes(service: PilotService) {
@@ -141,7 +142,7 @@ async function publicCredential(service: PilotService, id: string) {
   return service.exclusive(async () => {
     const proposal = service.getProposal(id);
     if (proposal.terms.visibility !== "public" || proposal.state !== "active") {
-      refuse("Bekreftelsen er ikke offentlig tilgjengelig.", 404);
+      refuse("This affiliation proof is not publicly available.", 404);
     }
     return {
       acceptance: proposal.acceptanceRef,
@@ -178,8 +179,7 @@ async function serveGet(
       data = {
         accounts: config.people.map(({ handle, name }) => ({ handle, name })),
         demo: true,
-        notice:
-          "Isolert demonstrasjon. Alle personer og tilknytninger er syntetiske.",
+        notice: "Isolated demo. All people and affiliations are synthetic.",
       };
       break;
     }
@@ -199,7 +199,7 @@ async function serveGet(
     }
     default: {
       if (!/^\/status\/[a-zA-Z0-9-]+$/u.test(url.pathname)) {
-        refuse("Ikke funnet.", 404);
+        refuse("Not found.", 404);
       }
       const id = url.pathname.slice("/status/".length);
       data = await service.exclusive(() => service.status(id));
@@ -222,7 +222,7 @@ class WriteRateLimiter {
     const rate = this.rates.get(key) ?? { count: 0, until: now + 60_000 };
     rate.count += 1;
     if (rate.count > (login ? 20 : 90) || this.rates.size > 5000) {
-      refuse("For mange forsøk. Vent et minutt.", 429);
+      refuse("Too many attempts. Wait a minute.", 429);
     }
     this.rates.set(key, rate);
   }
@@ -246,7 +246,7 @@ export function createPilotServer(
     if (context.url.pathname === "/api/login") {
       const handle = text(input, "handle", 200);
       if (!config.people.some((person) => person.handle === handle)) {
-        refuse("Ugyldig demokonto eller passord.", 401);
+        refuse("Invalid demo account or password.", 401);
       }
       const logged = await service.exclusive(() =>
         service.repo.login(handle, text(input, "password", 1000))
@@ -272,7 +272,7 @@ export function createPilotServer(
       request.headers.origin !== config.origin ||
       !/^application\/json(?:;|$)/u.test(request.headers["content-type"] ?? "")
     ) {
-      refuse("Forespørselen må komme fra denne siden.", 403);
+      refuse("The request must come from this site.", 403);
     }
     rates.check(context);
     const input = await readInput(request);
@@ -281,11 +281,11 @@ export function createPilotServer(
       return;
     }
     if (!actor) {
-      refuse("Logg inn for å fortsette.", 401);
+      refuse("Sign in to continue.", 401);
     }
     const action = mutations.get(url.pathname);
     if (!action) {
-      refuse("Ikke funnet.", 404);
+      refuse("Not found.", 404);
     }
     const result = await service.exclusive(async () => {
       try {
@@ -314,14 +314,14 @@ export function createPilotServer(
     }
     const origin = new URL(config.origin);
     if (request.headers.host !== origin.host) {
-      refuse("Ugyldig vert.", 403);
+      refuse("Invalid host.", 403);
     }
     if (
       !request.url ||
       request.url.length > 4096 ||
       /[\\\s]/u.test(request.url)
     ) {
-      refuse("Ugyldig adresse.");
+      refuse("Invalid address.");
     }
     const sessionKey = request.headers.cookie
       ?.split(";")
@@ -346,7 +346,7 @@ export function createPilotServer(
       await servePost(context);
       return;
     }
-    refuse("Ikke funnet.", 404);
+    refuse("Not found.", 404);
   }
   return http.createServer((request, response) => {
     handleRequest(request, response).catch((error: unknown) => {

@@ -133,7 +133,7 @@ try {
       startsAt: new Date(Date.now() + 86_400_000).toISOString(),
       title: "Før fullmakt",
     }),
-    /fullmakt/u
+    /permission/u
   );
   const g = await service.grant(admin, p.id, 1, {
     action: "events.publish",
@@ -154,7 +154,7 @@ try {
       startsAt: new Date(Date.now() + 86_400_000).toISOString(),
       title: "Uten fullmakt",
     }),
-    /fullmakt/u
+    /permission/u
   );
   if (preview) {
     server = createPilotServer(config, service, auth);
