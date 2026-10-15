@@ -2,6 +2,7 @@
   "name": "attestation-issuer",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "A reusable attestation issuer: an organisation states a narrow, checkable fact about an account, and any application can verify it without reaching the organisation's data.",
   "engines": {
