@@ -109,7 +109,7 @@ console.log('PASS standalone package verifies a real signature and refuses inval
   );
   assert(
     contents.files.every((file) =>
-      /^(package\.json|[a-z-]+\.(js|d\.ts))$/.test(file.path),
+      /^(package\.json|LICENSE|[a-z-]+\.(js|d\.ts))$/.test(file.path),
     ),
   );
   assert(

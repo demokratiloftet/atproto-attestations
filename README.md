@@ -270,3 +270,7 @@ The migration also rejects malformed schema metadata and request bodies, refuses
 nonfinite trust-policy time windows, and checks own schema properties so inherited
 names such as `__proto__` cannot bypass `additionalProperties: false`. The console
 constructs selectable labels with DOM text nodes and escapes audit identities.
+
+## License
+
+Licensed under [MIT](LICENSE).
