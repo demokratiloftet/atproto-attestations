@@ -37,7 +37,7 @@
     "test:integration": "pnpm --dir pilot-fixture install --frozen-lockfile && pnpm test:pilot-integration"
   },
   "dependencies": {
-    "@atproto/api": "0.24.0",
+    "@atproto/api": "0.24.3",
     "@atproto/identity": "0.5.16",
     "@atproto/repo": "0.11.0",
     "@loftet/auth": "file:vendor/loftet-auth-0.3.0.tgz"
