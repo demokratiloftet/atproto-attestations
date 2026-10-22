@@ -82,6 +82,16 @@ def load_archive(archive, revision):
                        stderr=subprocess.PIPE, check=True, timeout=120)
 
 
+def require_patched_node(image):
+    # Inspect the candidate before changing image.json or touching running services.
+    run('docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'node', image,
+        '-e', "const v=process.versions.node.split('.').map(Number);"
+        "const min={22:[23,4],24:[22,1],26:[12,1]}[v[0]];"
+        "if(!min || v[1]<min[0] || (v[1]===min[0] && v[2]<min[1]))"
+        "{console.error('Node runtime lacks the October 2026 security baseline');process.exit(1)}")
+
+
+
 def deploy(revision, digest, source):
     if not re.fullmatch(r'[0-9a-f]{40}', revision) or not re.fullmatch(r'[0-9a-f]{64}', digest):
         raise ValueError('Expected Git revision and archive SHA-256')
@@ -104,6 +114,7 @@ def deploy(revision, digest, source):
             tag = 'affiliation-pilot:' + revision
             candidate = json.loads(run('docker', 'image', 'inspect', tag))[0]
             assert candidate['Config']['Labels'].get('org.opencontainers.image.revision') == revision, 'Image revision mismatch'
+            require_patched_node(candidate['Id'])
             previous = run('docker', 'inspect', '--format', '{{.Image}}', 'affiliation-pilot-app-1')
             old_override = OVERRIDE.read_bytes() if OVERRIDE.exists() else None
             write_override(candidate['Id'])

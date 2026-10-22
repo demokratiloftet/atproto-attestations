@@ -1,4 +1,4 @@
-FROM node:24.17.0-bookworm-slim@sha256:862263c612aa437e3037674b85419622a9d93bff80aa1eee5398dfe686375532 AS build
+FROM node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS build
 RUN npm install --global pnpm@11.8.0
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
@@ -9,7 +9,7 @@ COPY verify ./verify
 COPY public ./public
 COPY scripts ./scripts
 RUN pnpm run build && pnpm prune --prod
-FROM node:24.17.0-bookworm-slim@sha256:862263c612aa437e3037674b85419622a9d93bff80aa1eee5398dfe686375532
+FROM node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
 WORKDIR /app
 COPY package.json ./
 COPY --from=build /app/dist ./dist

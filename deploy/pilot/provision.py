@@ -7,7 +7,7 @@ import json, os, secrets, subprocess, sys
 from pathlib import Path
 ROOT=Path('/root/affiliation-pilot')
 HOST='tilknytning.hackaton.demokratiloftet.no'
-NODE='node:24.17.0-bookworm-slim@sha256:862263c612aa437e3037674b85419622a9d93bff80aa1eee5398dfe686375532'
+NODE='node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205'
 os.umask(0o077)
 ROOT.mkdir(exist_ok=True)
 private=ROOT/'.runtime';private.mkdir(exist_ok=True);private.chmod(0o700)

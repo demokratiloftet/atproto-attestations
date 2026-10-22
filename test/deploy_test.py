@@ -72,7 +72,7 @@ class DeploymentTest(unittest.TestCase):
     def run_deployment(self, health):
         content = image_archive()
         candidate = [{'Id': 'sha256:new', 'Config': {'Labels': {'org.opencontainers.image.revision': REVISION}}}]
-        with patch.object(receiver, 'load_archive'), patch.object(receiver, 'run', side_effect=[json.dumps(candidate), 'sha256:previous']), \
+        with patch.object(receiver, 'load_archive'), patch.object(receiver, 'require_patched_node'), patch.object(receiver, 'run', side_effect=[json.dumps(candidate), 'sha256:previous']), \
                 patch.object(receiver, 'compose') as compose, patch.object(receiver, 'health', side_effect=health):
             try:
                 receiver.deploy(REVISION, hashlib.sha256(content).hexdigest(), io.BytesIO(content))
@@ -80,6 +80,19 @@ class DeploymentTest(unittest.TestCase):
                 for call in compose.call_args_list:
                     self.assertEqual(call.args, ('up', '-d', '--no-deps', '--no-build', '--force-recreate', '--wait', '--wait-timeout', '90', 'app'))
         return compose
+
+    def test_unpatched_runtime_cannot_replace_current_image(self):
+        content = image_archive()
+        candidate = [{'Id': 'sha256:old-node', 'Config': {'Labels': {'org.opencontainers.image.revision': REVISION}}}]
+        receiver.write_override('sha256:current')
+        original = receiver.OVERRIDE.read_bytes()
+        with patch.object(receiver, 'load_archive'), patch.object(receiver, 'run', return_value=json.dumps(candidate)), \
+                patch.object(receiver, 'require_patched_node', side_effect=RuntimeError('unpatched Node')), \
+                patch.object(receiver, 'compose') as compose:
+            with self.assertRaisesRegex(RuntimeError, 'unpatched Node'):
+                receiver.deploy(REVISION, hashlib.sha256(content).hexdigest(), io.BytesIO(content))
+        compose.assert_not_called()
+        self.assertEqual(receiver.OVERRIDE.read_bytes(), original)
 
     def test_success_keeps_previous_image_and_writes_release(self):
         compose = self.run_deployment([None])
