@@ -10,6 +10,7 @@
   },
   "type": "module",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "start": "node dist/src/server.js",
     "dev": "docker compose up -d --build --wait",
     "down": "docker compose down",
