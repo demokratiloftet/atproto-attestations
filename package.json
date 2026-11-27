@@ -37,13 +37,13 @@
   },
   "dependencies": {
     "@atproto/api": "0.24.0",
-    "@atproto/identity": "0.5.16",
-    "@atproto/repo": "0.11.0",
+    "@atproto/identity": "0.5.24",
+    "@atproto/repo": "0.11.6",
     "@loftet/auth": "file:vendor/loftet-auth-0.3.0.tgz"
   },
   "devDependencies": {
     "@types/node": "24.19.1",
-    "prettier": "3.10.0",
+    "prettier": "3.10.1",
     "typescript": "7.0.2"
   },
   "engines": {
