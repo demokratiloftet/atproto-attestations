@@ -32,20 +32,20 @@ Dependabot proposes weekly Action and npm updates, grouping the Oxc toolchain so
 
 ```mermaid
 flowchart LR
-  Source[Pull request or master push] --> Quality[Lint · format · types]
+  Source[Pull request or main push] --> Quality[Lint · format · types]
   Source --> Tests[Unit · security tests]
   Source --> AT[Real AT integration]
   Source --> Package[Independent verifier]
   Source --> Security[Secrets · audit · receiver tests]
   Quality & Tests & AT & Package & Security --> Image[Build and save exact image]
   Image --> Gate[Ready to deploy]
-  Gate --> Branch{master?}
+  Gate --> Branch{main?}
   Branch -->|yes| Deploy[Restricted VPS receiver]
   Deploy --> Health[HTTPS · credential proofs]
   Health -->|failure| Rollback[Restore previous image]
 ```
 
-Pull requests validate and build without deployment credentials. A successful `master` push automatically deploys the saved image from that same workflow run. All Actions are pinned by commit SHA. The `demo` GitHub environment is restricted to `master`; it holds the dedicated `DEMO_DEPLOY_KEY` and pinned `DEMO_KNOWN_HOSTS`. No root SSH key or application credentials enter GitHub.
+Pull requests validate and build without deployment credentials. A successful `main` push automatically deploys the saved image from that same workflow run. All Actions are pinned by commit SHA. The `demo` GitHub environment is restricted to `main`; it holds the dedicated `DEMO_DEPLOY_KEY` and pinned `DEMO_KNOWN_HOSTS`. No root SSH key or application credentials enter GitHub.
 
 **Repository-plan limit:** GitHub returned HTTP 403 for branch-protection configuration on this private repository. The workflow enforces all checks before deployment, but this plan cannot enforce checks before merging. If branch protection becomes available, require the `Ready to deploy` check, disallow force pushes and require review for workflow/deployment changes. No repository visibility or subscription was changed.
 
