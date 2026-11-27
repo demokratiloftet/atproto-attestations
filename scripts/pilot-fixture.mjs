@@ -84,7 +84,7 @@ writeFileSync(
   JSON.stringify({
     accounts: accounts.slice(2).map((p) => ({ ...p, password })),
   }),
-  { mode: 0o600 }
+  { mode: 0o600 },
 );
 const auth = new AuthStore(join(directory, "auth"));
 const repo = new PilotRepository(config, auth);
@@ -133,7 +133,7 @@ try {
       startsAt: new Date(Date.now() + 86_400_000).toISOString(),
       title: "Før fullmakt",
     }),
-    /permission/u
+    /permission/u,
   );
   const g = await service.grant(admin, p.id, 1, {
     action: "events.publish",
@@ -154,7 +154,7 @@ try {
       startsAt: new Date(Date.now() + 86_400_000).toISOString(),
       title: "Uten fullmakt",
     }),
-    /permission/u
+    /permission/u,
   );
   if (preview) {
     server = createPilotServer(config, service, auth);
@@ -179,14 +179,14 @@ try {
       person,
       "no.demokratiloftet.affiliation.acceptance",
       `${p.id}-1`,
-      { ...a, revision: 99 }
+      { ...a, revision: 99 },
     );
     assert.equal((await service.verify(approved)).valid, false);
     await repo.put(
       person,
       "no.demokratiloftet.affiliation.acceptance",
       `${p.id}-1`,
-      a
+      a,
     );
     assert.equal((await service.verify(approved)).valid, true);
     await service.revokeGrant(admin, g.id);
@@ -201,7 +201,7 @@ try {
     await service.end(person, p.id, 1, "revoked");
     assert.equal((await service.verify(approved)).valid, false);
     console.log(
-      "PASS real PDS: both initiation flows, two repository signatures, exact CID acceptance, tamper rejection, scoped event publishing, outsider denial, grant revocation and subject withdrawal."
+      "PASS real PDS: both initiation flows, two repository signatures, exact CID acceptance, tamper rejection, scoped event publishing, outsider denial, grant revocation and subject withdrawal.",
     );
   }
 } finally {

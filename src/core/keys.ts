@@ -18,7 +18,7 @@ export async function loadSigner({
 }) {
   if (privateJwk) {
     return importSigningKey(
-      typeof privateJwk === "string" ? JSON.parse(privateJwk) : privateJwk
+      typeof privateJwk === "string" ? JSON.parse(privateJwk) : privateJwk,
     );
   }
   mkdirSync(directory, { mode: 0o700, recursive: true });
@@ -26,9 +26,11 @@ export async function loadSigner({
   try {
     return await importSigningKey(JSON.parse(readFileSync(file, "utf-8")));
   } catch (error) {
-    if (
-      !(error instanceof Error && "code" in error && error.code === "ENOENT")
-    ) {
+    if (!(
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "ENOENT"
+    )) {
       throw error;
     }
     const generated = await generateKeyPair(kid);

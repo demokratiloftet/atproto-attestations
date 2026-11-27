@@ -14,7 +14,7 @@ export function parsePerson(input: unknown): Person {
     row[key] === undefined ? undefined : text(row, key);
   function list<T>(
     value: unknown,
-    parse: (row: Record<string, unknown>) => T
+    parse: (row: Record<string, unknown>) => T,
   ): T[] | undefined {
     if (value === undefined) {
       return undefined;

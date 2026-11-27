@@ -100,13 +100,13 @@ export interface AcceptanceRecord {
 export interface Repository {
   login(
     identifier: string,
-    password: string
+    password: string,
   ): Promise<{ did: string; handle: string }>;
   put(
     did: string,
     collection: string,
     key: string,
-    record: Record<string, unknown>
+    record: Record<string, unknown>,
   ): Promise<Ref>;
   read(ref: Ref): Promise<Record<string, unknown>>;
   remove(did: string, collection: string, key: string): Promise<void>;

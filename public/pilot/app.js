@@ -11,7 +11,7 @@ const esc = (s) =>
         "'": "&#39;",
         "<": "&lt;",
         ">": "&gt;",
-      })[c]
+      })[c],
   );
 let editing;
 let orgId;
@@ -79,7 +79,7 @@ async function api(path, body) {
           headers: { "content-type": "application/json" },
           method: "POST",
         }
-      : {}
+      : {},
   );
   const data = await r.json();
   if (!r.ok) {
@@ -116,12 +116,12 @@ function empty(title, detail) {
 const scopeLabel = (scope) => (scope === "*" ? "Whole organisation" : scope);
 function currentProposals() {
   return state.proposals.filter(
-    (proposal) => proposal.terms.organisationDid === orgId
+    (proposal) => proposal.terms.organisationDid === orgId,
   );
 }
 function publicProposals() {
   return state.publicCredentials.filter(
-    (proposal) => proposal.terms.organisationDid === orgId
+    (proposal) => proposal.terms.organisationDid === orgId,
   );
 }
 function proposalStatus(proposal) {
@@ -237,8 +237,8 @@ function moreActions(proposal, status, publicOnly) {
         "revoke",
         "End affiliation and access",
         proposal.id,
-        'class="danger"'
-      )
+        'class="danger"',
+      ),
     );
   }
   return `<details class="more-actions"><summary>More actions</summary><div class="actions">${actions.join("")}</div></details>`;
@@ -280,10 +280,10 @@ function credential(proposal, publicOnly = false) {
 function affiliationsView() {
   const proposals = currentProposals();
   const current = proposals.filter(
-    (p) => !["revoked", "declined", "expired"].includes(proposalStatus(p))
+    (p) => !["revoked", "declined", "expired"].includes(proposalStatus(p)),
   );
   const archived = proposals.filter((p) =>
-    ["revoked", "declined", "expired"].includes(proposalStatus(p))
+    ["revoked", "declined", "expired"].includes(proposalStatus(p)),
   );
   current.sort((a, b) => Number(needsApproval(b)) - Number(needsApproval(a)));
   const waiting = current.filter(needsApproval).length;
@@ -306,8 +306,8 @@ function eventScopes() {
         grant.subject === state.person?.did &&
         grant.organisationDid === orgId &&
         grant.scope === scope &&
-        currentProposals().some((proposal) => activeGrant(grant, proposal))
-    )
+        currentProposals().some((proposal) => activeGrant(grant, proposal)),
+    ),
   );
 }
 function eventForm(scopes) {
@@ -320,7 +320,7 @@ function eventForm(scopes) {
 }
 function eventsView() {
   const events = state.events.filter(
-    (event) => event.organisationDid === orgId
+    (event) => event.organisationDid === orgId,
   );
   const scopes = eventScopes();
   const access = !state.person
@@ -364,7 +364,7 @@ function render() {
   $("#tabs").innerHTML = tabs
     .map(
       ([id, title]) =>
-        `<button data-tab="${id}" class="${tab === id ? "active" : ""}" aria-current="${tab === id ? "page" : "false"}">${title}</button>`
+        `<button data-tab="${id}" class="${tab === id ? "active" : ""}" aria-current="${tab === id ? "page" : "false"}">${title}</button>`,
     )
     .join("");
   const views = {
@@ -429,7 +429,7 @@ function openProposal(proposal) {
   $("#proposal-scope").innerHTML = org.scopes
     .map(
       (scope) =>
-        `<option value="${esc(scope)}">${esc(scopeLabel(scope))}</option>`
+        `<option value="${esc(scope)}">${esc(scopeLabel(scope))}</option>`,
     )
     .join("");
   $("#proposal-duration").innerHTML =
@@ -481,7 +481,7 @@ async function openLogin() {
   $("#login-handle").innerHTML = demo.accounts
     .map(
       (account) =>
-        `<option value="${esc(account.handle)}">${esc(account.name)}</option>`
+        `<option value="${esc(account.handle)}">${esc(account.name)}</option>`,
     )
     .join("");
   $("#login-error").textContent = "";
@@ -521,7 +521,7 @@ async function performAction(action, id, proposal) {
   notice(
     ["approve", "retry"].includes(action)
       ? approvalNotice(id)
-      : messages[action]
+      : messages[action],
   );
 }
 onAsync(document, "click", async (event) => {
@@ -614,7 +614,7 @@ onAsync($("#proposal-form"), "submit", async (event) => {
       {
         ...(editing ? { id: editing.id, revision: editing.revision } : {}),
         terms,
-      }
+      },
     );
     $("#proposal-dialog").close();
     tab = "affiliations";
@@ -652,7 +652,7 @@ try {
 } catch (error) {
   $("#content").innerHTML = empty(
     "Could not load affiliations",
-    "Choose “Refresh” to try again."
+    "Choose “Refresh” to try again.",
   );
   notice(error.message, true);
 }

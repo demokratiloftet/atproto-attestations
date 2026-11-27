@@ -113,27 +113,27 @@ export function parsePilotConfig(input: unknown): PilotConfig {
   }
   const people = array(row.people, "people").map(parsePerson);
   const organisations = array(row.organisations, "organisations").map((org) =>
-    parseOrganisation(org, people)
+    parseOrganisation(org, people),
   );
   unique(
     [
       ...people.map((person) => person.did),
       ...organisations.map((org) => org.did),
     ],
-    "account DID"
+    "account DID",
   );
   unique(
     [
       ...people.map((person) => person.handle),
       ...organisations.map((org) => org.issuerHandle),
     ],
-    "account handle"
+    "account handle",
   );
   unique(
     organisations.flatMap((org) =>
-      org.domain === undefined ? [] : [org.domain]
+      org.domain === undefined ? [] : [org.domain],
     ),
-    "organisation domain"
+    "organisation domain",
   );
   const pdsCanonical =
     row.pdsCanonical === undefined

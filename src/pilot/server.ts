@@ -48,7 +48,7 @@ function sendError(response: ServerResponse, error: unknown) {
   if (status >= 500) {
     console.error(
       "Pilot operation failed",
-      error instanceof Error ? error.name : "UnknownError"
+      error instanceof Error ? error.name : "UnknownError",
     );
     message = "The service could not complete the request. Try again.";
   }
@@ -64,7 +64,7 @@ function securityHeaders(response: ServerResponse) {
   response.setHeader("Referrer-Policy", "no-referrer");
   response.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
   );
 }
 async function readInput(request: IncomingMessage): Promise<Input> {
@@ -109,7 +109,7 @@ function mutationRoutes(service: PilotService) {
           actor,
           text(input, "id"),
           input.revision,
-          object(input.terms, "terms")
+          object(input.terms, "terms"),
         ),
     ],
     [
@@ -156,14 +156,14 @@ async function publicCredential(service: PilotService, id: string) {
 async function serveGet(
   context: Context,
   config: PilotConfig,
-  service: PilotService
+  service: PilotService,
 ) {
   const { actor, response, url } = context;
   const asset = assets.get(url.pathname);
   if (asset) {
     const [file, contentType] = asset;
     const data = await readFile(
-      new URL(`../../public/pilot/${file}`, import.meta.url)
+      new URL(`../../public/pilot/${file}`, import.meta.url),
     );
     response.writeHead(200, { "content-type": contentType });
     response.end(data);
@@ -230,7 +230,7 @@ class WriteRateLimiter {
 export function createPilotServer(
   config: PilotConfig,
   service: PilotService,
-  auth: AuthStore
+  auth: AuthStore,
 ) {
   const secure = new URL(config.origin).protocol === "https:";
   const cookieName = secure
@@ -249,7 +249,7 @@ export function createPilotServer(
         refuse("Invalid demo account or password.", 401);
       }
       const logged = await service.exclusive(() =>
-        service.repo.login(handle, text(input, "password", 1000))
+        service.repo.login(handle, text(input, "password", 1000)),
       );
       cookieValue = random();
       maxAge = 8 * 3600;
@@ -257,7 +257,7 @@ export function createPilotServer(
         "pilot-browser",
         hash(cookieValue),
         { did: logged.did },
-        maxAge * 1000
+        maxAge * 1000,
       );
     }
     if (context.sessionKey) {
@@ -296,7 +296,7 @@ export function createPilotServer(
           "request-denied",
           undefined,
           undefined,
-          url.pathname
+          url.pathname,
         );
         throw error;
       }
@@ -305,7 +305,7 @@ export function createPilotServer(
   }
   async function handleRequest(
     request: IncomingMessage,
-    response: ServerResponse
+    response: ServerResponse,
   ) {
     securityHeaders(response);
     if (request.url === "/health" && request.method === "GET") {
@@ -361,7 +361,7 @@ if (process.argv[1] === import.meta.filename) {
     join(config.dataDir, "auth"),
     process.env.AUTH_ENCRYPTION_KEY_FILE
       ? readFileSync(process.env.AUTH_ENCRYPTION_KEY_FILE, "utf-8").trim()
-      : process.env.AUTH_ENCRYPTION_KEY
+      : process.env.AUTH_ENCRYPTION_KEY,
   );
   const repo = new PilotRepository(config, auth);
   const service = new PilotService(config, repo);
@@ -372,7 +372,7 @@ if (process.argv[1] === import.meta.filename) {
   server.listen(
     Number(process.env.PORT ?? 3013),
     process.env.HOST ?? "127.0.0.1",
-    () => console.log("Affiliation pilot ready")
+    () => console.log("Affiliation pilot ready"),
   );
   const worker = setInterval(() => {
     service

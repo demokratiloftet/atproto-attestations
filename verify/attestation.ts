@@ -28,12 +28,12 @@ export function parseRecord(input: unknown) {
   }
   if (!isObject(input)) {
     throw new Error(
-      "An attestation record must be an object or a compact token"
+      "An attestation record must be an object or a compact token",
     );
   }
   if (input.$type !== undefined && input.$type !== RECORD_TYPE) {
     throw new Error(
-      `Not an attestation record: ${JSON.stringify(input.$type).slice(0, 64)}`
+      `Not an attestation record: ${JSON.stringify(input.$type).slice(0, 64)}`,
     );
   }
   if (typeof input.jws !== "string") {
@@ -53,9 +53,9 @@ function selectTrust(policy: TrustPolicy | undefined, payload: Payload) {
     (entry) =>
       entry.issuer === payload.iss &&
       (entry.claimTypes || []).some((pattern) =>
-        matchPattern(pattern, payload.claimType)
+        matchPattern(pattern, payload.claimType),
       ) &&
-      matchWhere(payload.claim, entry.where, {}).ok
+      matchWhere(payload.claim, entry.where, {}).ok,
   );
 }
 
@@ -79,7 +79,7 @@ function matchPattern(pattern: string, claimType: string) {
 
 export async function verifyAttestation(
   input: unknown,
-  options: VerifyOptions = {}
+  options: VerifyOptions = {},
 ): Promise<Verification> {
   const checks: VerificationCheck[] = [];
   const add = (name: string, ok: boolean, detail?: string) => {
@@ -162,7 +162,7 @@ export async function verifyAttestation(
     add(
       "trust",
       false,
-      `No trust entry accepts ${payload.claimType} from ${payload.iss}`
+      `No trust entry accepts ${payload.claimType} from ${payload.iss}`,
     );
     return done("untrusted-issuer");
   }
@@ -179,7 +179,7 @@ export async function verifyAttestation(
     return done(
       /no usable key/iu.test(message(error))
         ? "unknown-key"
-        : "invalid-signature"
+        : "invalid-signature",
     );
   }
   add("signature", true, `signed by ${payload.iss}`);
@@ -224,13 +224,13 @@ export async function verifyAttestation(
             issuedAt: payload.iat,
             issuer: payload.iss,
             subject: payload.sub,
-          }[field]
+          }[field],
     );
     if (mismatched.length) {
       add(
         "view",
         false,
-        `Display fields disagree with the signed payload: ${mismatched.join(", ")}`
+        `Display fields disagree with the signed payload: ${mismatched.join(", ")}`,
       );
       return done("view-mismatch");
     }
@@ -267,21 +267,21 @@ export async function verifyAttestation(
       add(
         "provenance",
         false,
-        `Published in ${repo || "an unknown repository"}, expected ${entry.repo}`
+        `Published in ${repo || "an unknown repository"}, expected ${entry.repo}`,
       );
       return done("provenance");
     }
     add(
       "provenance",
       true,
-      repo ? `published in ${repo}` : "no repository asserted"
+      repo ? `published in ${repo}` : "no repository asserted",
     );
   }
 
   if (expect) {
     const mismatch = (["subject", "claimType"] as const).find(
       (field) =>
-        expect[field] !== undefined && expect[field] !== attestation[field]
+        expect[field] !== undefined && expect[field] !== attestation[field],
     );
     const claimCheck = expect.claim
       ? matchWhere(payload.claim, expect.claim, {
@@ -297,7 +297,7 @@ export async function verifyAttestation(
           ? `${mismatch} is not what the application asked about`
           : !claimCheck.ok
             ? claimCheck.reason
-            : undefined
+            : undefined,
       );
       return done("expectations");
     }
@@ -326,7 +326,7 @@ async function checkStatus(
     fetchStatus,
     now,
     maxAge,
-  }: { keys: Jwk[]; fetchStatus?: FetchStatus; now: number; maxAge: number }
+  }: { keys: Jwk[]; fetchStatus?: FetchStatus; now: number; maxAge: number },
 ): Promise<{ ok: boolean; reason?: string; detail: string }> {
   if (typeof payload.status !== "string") {
     return {
@@ -380,7 +380,7 @@ async function checkStatus(
         : isObject(answer)
           ? answer.jws
           : undefined,
-      keys
+      keys,
     );
   } catch (error) {
     return {

@@ -34,7 +34,7 @@ async function seedExample(input: unknown) {
   const example = object(input, "example");
   const person = config.people.find((p) => p.handle === example.subject);
   const org = config.organisations.find(
-    (o) => o.issuerHandle === example.organisation
+    (o) => o.issuerHandle === example.organisation,
   );
   const approver = org?.approvers[0];
   if (!person || !org || !approver) {
@@ -57,14 +57,14 @@ async function seedExample(input: unknown) {
       (p) =>
         p.terms.subject === person.did &&
         p.terms.organisationDid === org.did &&
-        p.terms.roleId === terms.roleId
+        p.terms.roleId === terms.roleId,
     );
   let proposal = existing ?? (await service.propose(approver, terms));
   if (example.accepted === true && proposal.state === "pending") {
     proposal = await service.approve(
       person.did,
       proposal.id,
-      proposal.revision
+      proposal.revision,
     );
   }
   if (proposal.state === "publishing") {
@@ -86,7 +86,7 @@ async function seedExample(input: unknown) {
     !service.store
       .events()
       .some(
-        (e) => e.organisationDid === org.did && e.title === example.eventTitle
+        (e) => e.organisationDid === org.did && e.title === example.eventTitle,
       )
   ) {
     await service.publishEvent(person.did, {

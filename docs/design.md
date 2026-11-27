@@ -6,13 +6,13 @@ The demo issuer inside `calendar-app` proved the shape. This repository is the r
 
 ## What is generic, and what each organisation supplies
 
-| Supplied here | Supplied by the organisation |
-| --- | --- |
-| Claim envelope, signing, key publication | Its signing key |
-| Claim-type descriptors and their validation | Which claim types it offers |
-| Issuance and disclosure policy evaluation | Its own authority data, via one adapter |
-| Status, revocation, audit | Its deployment and domain |
-| Verification library and CLI | — |
+| Supplied here                               | Supplied by the organisation            |
+| ------------------------------------------- | --------------------------------------- |
+| Claim envelope, signing, key publication    | Its signing key                         |
+| Claim-type descriptors and their validation | Which claim types it offers             |
+| Issuance and disclosure policy evaluation   | Its own authority data, via one adapter |
+| Status, revocation, audit                   | Its deployment and domain               |
+| Verification library and CLI                | —                                       |
 
 Generic software cannot make an organisation authoritative. Every consuming application still decides, in its own trust policy, which issuer it accepts for which claim types. Being trusted for club roles does not make an issuer trusted for professional qualifications.
 
@@ -138,12 +138,12 @@ A signed claim that has been copied elsewhere stays signed. That is why status i
 
 ## Claim types shipped
 
-| Claim type | Visibility | Purpose |
-| --- | --- | --- |
-| `no.nif.identityLinked` | public | The account was linked to an authenticated identity at a stated assurance level. No personal identifiers. |
-| `no.nif.clubRole` | public | Role in a named club: `leder`, `trener`, `medlem`. Basis for delegation. |
-| `no.nif.instructorLicence` | public | Discipline and level, e.g. swimming instructor. The first NIF case. |
-| `no.politiet.attest` | restricted | Demonstrates query-only disclosure. Synthetic, and not a police integration. |
+| Claim type                 | Visibility | Purpose                                                                                                   |
+| -------------------------- | ---------- | --------------------------------------------------------------------------------------------------------- |
+| `no.nif.identityLinked`    | public     | The account was linked to an authenticated identity at a stated assurance level. No personal identifiers. |
+| `no.nif.clubRole`          | public     | Role in a named club: `leder`, `trener`, `medlem`. Basis for delegation.                                  |
+| `no.nif.instructorLicence` | public     | Discipline and level, e.g. swimming instructor. The first NIF case.                                       |
+| `no.politiet.attest`       | restricted | Demonstrates query-only disclosure. Synthetic, and not a police integration.                              |
 
 All four are demonstrations with synthetic data. Nothing here is endorsed by NIF, Idrettens ID or politiet.
 

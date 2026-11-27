@@ -47,9 +47,9 @@ void test("malformed publisher sessions fail before an authenticated write", asy
     await assert.rejects(
       () =>
         publisher.remove(
-          "at://did:plc:issuer/no.demokratiloftet.attestation/key"
+          "at://did:plc:issuer/no.demokratiloftet.attestation/key",
         ),
-      /PDS response missing/u
+      /PDS response missing/u,
     );
     assert.equal(calls, 1);
   }

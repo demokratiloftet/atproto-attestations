@@ -15,14 +15,14 @@ export function loadClaimTypes(directory: string) {
     let descriptor;
     try {
       descriptor = parseDescriptor(
-        JSON.parse(readFileSync(join(directory, file), "utf-8"))
+        JSON.parse(readFileSync(join(directory, file), "utf-8")),
       );
     } catch (error) {
       throw new Error(`${file}: ${message(error)}`, { cause: error });
     }
     if (`${descriptor.id}.json` !== file) {
       throw new Error(
-        `${file}: the file must be named after the claim type id`
+        `${file}: the file must be named after the claim type id`,
       );
     }
     types[descriptor.id] = descriptor;

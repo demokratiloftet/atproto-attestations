@@ -52,15 +52,15 @@ export function createIssuer({
           claimTypes,
           now: at,
           trustPolicy: self(),
-        })
-      )
+        }),
+      ),
     );
 
   async function assured(
     descriptor: Descriptor,
     subject: string,
     presented: unknown[] | undefined,
-    at: number
+    at: number,
   ): Promise<{ ok: true; from?: string } | { ok: false; reason: string }> {
     const requirement = descriptor.subjectAssurance;
     if (!requirement) {
@@ -128,7 +128,7 @@ export function createIssuer({
       descriptor,
       subject,
       subjectAttestations,
-      at
+      at,
     );
     if (!assurance.ok) {
       audit("issue", "denied", {
@@ -167,14 +167,14 @@ export function createIssuer({
       });
       refuse(
         500,
-        `Utstederen produserte en ugyldig attestasjon: ${errors.join("; ")}`
+        `Utstederen produserte en ugyldig attestasjon: ${errors.join("; ")}`,
       );
     }
 
     // An adapter may shorten a lifetime; it can never extend the claim type's.
     const lifetimeDays = Math.min(
       descriptor.maxLifetimeDays,
-      answer.maxLifetimeDays ?? descriptor.maxLifetimeDays
+      answer.maxLifetimeDays ?? descriptor.maxLifetimeDays,
     );
     const { payload, jws, record } = await createAttestation({
       claim: answer.claim,
@@ -213,7 +213,7 @@ export function createIssuer({
         });
         refuse(
           503,
-          `Attestasjonen ble utstedt, men kunne ikke publiseres: ${message(error)}`
+          `Attestasjonen ble utstedt, men kunne ikke publiseres: ${message(error)}`,
         );
       }
     }
@@ -245,7 +245,7 @@ export function createIssuer({
     if (descriptor.disclosure.mode !== "query-only") {
       refuse(
         400,
-        `${claimType} er et offentlig register. Les posten direkte i stedet.`
+        `${claimType} er et offentlig register. Les posten direkte i stedet.`,
       );
     }
 
@@ -273,10 +273,11 @@ export function createIssuer({
       .filter(
         (row) =>
           row.claimType === claimType &&
-          matchWhere(row.claim, requestBinding(descriptor, request), context).ok
+          matchWhere(row.claim, requestBinding(descriptor, request), context)
+            .ok,
       );
     const live = rows.filter(
-      (row) => !row.revokedAt && Date.parse(row.expiresAt) > at
+      (row) => !row.revokedAt && Date.parse(row.expiresAt) > at,
     );
     const answer = live.length
       ? "valid"
@@ -404,7 +405,7 @@ export function createIssuer({
       subject: string;
       requester?: Requester;
       detail?: string;
-    }
+    },
   ) {
     store.audit({
       action,

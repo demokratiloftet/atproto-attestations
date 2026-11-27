@@ -100,7 +100,7 @@ void test("the signed payload is the truth; a rewritten view is reported, not be
   assert.equal(
     result.attestation.subject,
     SUBJECT,
-    "the verdict still reports the signed subject"
+    "the verdict still reports the signed subject",
   );
 });
 
@@ -116,7 +116,7 @@ void test("a claim signed by someone else, or by an untrusted issuer, is refused
         trustPolicy: policy,
       })
     ).reason,
-    "invalid-signature"
+    "invalid-signature",
   );
 
   const elsewhere = await mint({
@@ -130,7 +130,7 @@ void test("a claim signed by someone else, or by an untrusted issuer, is refused
         trustPolicy: policy,
       })
     ).reason,
-    "untrusted-issuer"
+    "untrusted-issuer",
   );
 
   // Trusted for club roles does not mean trusted for police attestations.
@@ -146,7 +146,7 @@ void test("a claim signed by someone else, or by an untrusted issuer, is refused
         trustPolicy: policy,
       })
     ).reason,
-    "untrusted-issuer"
+    "untrusted-issuer",
   );
 });
 
@@ -162,7 +162,7 @@ void test("expiry and not-yet-valid claims fail, with a bounded clock skew", asy
         trustPolicy: policy,
       })
     ).reason,
-    "expired"
+    "expired",
   );
   assert.equal(
     (
@@ -172,7 +172,7 @@ void test("expiry and not-yet-valid claims fail, with a bounded clock skew", asy
         trustPolicy: policy,
       })
     ).reason,
-    "not-yet-valid"
+    "not-yet-valid",
   );
   assert.equal(
     (
@@ -183,7 +183,7 @@ void test("expiry and not-yet-valid claims fail, with a bounded clock skew", asy
       })
     ).valid,
     true,
-    "small skew is tolerated"
+    "small skew is tolerated",
   );
 });
 
@@ -215,7 +215,7 @@ void test('revocation is checked against a signed status answer, and failing to 
         trustPolicy: strict,
       })
     ).valid,
-    true
+    true,
   );
 
   const revoked = await status("revoked");
@@ -228,7 +228,7 @@ void test('revocation is checked against a signed status answer, and failing to 
         trustPolicy: strict,
       })
     ).reason,
-    "revoked"
+    "revoked",
   );
 
   const offline = async () => {
@@ -243,7 +243,7 @@ void test('revocation is checked against a signed status answer, and failing to 
         trustPolicy: strict,
       })
     ).reason,
-    "status-unavailable"
+    "status-unavailable",
   );
   assert.equal(
     (
@@ -253,7 +253,7 @@ void test('revocation is checked against a signed status answer, and failing to 
         trustPolicy: strict,
       })
     ).reason,
-    "status-unavailable"
+    "status-unavailable",
   );
 
   // A stale status answer must not stand in for a current one.
@@ -266,7 +266,7 @@ void test('revocation is checked against a signed status answer, and failing to 
         trustPolicy: strict,
       })
     ).reason,
-    "status-stale"
+    "status-stale",
   );
 
   // A status answer for a different attestation, or signed by another key, is not an answer.
@@ -286,7 +286,7 @@ void test('revocation is checked against a signed status answer, and failing to 
         trustPolicy: strict,
       })
     ).reason,
-    "status-unavailable"
+    "status-unavailable",
   );
 });
 
@@ -307,7 +307,7 @@ void test("an application states what it expects, and a valid claim about someth
         trustPolicy: policy,
       })
     ).valid,
-    true
+    true,
   );
   for (const wrong of [
     { ...expect, subject: "did:plc:other" },
@@ -323,7 +323,7 @@ void test("an application states what it expects, and a valid claim about someth
           trustPolicy: policy,
         })
       ).reason,
-      "expectations"
+      "expectations",
     );
   }
 });
@@ -340,20 +340,20 @@ void test("provenance is a separate check: a valid claim republished from the wr
     (
       await verifyAttestation(
         record,
-        at("at://did:plc:nif/no.demokratiloftet.attestation/3k2")
+        at("at://did:plc:nif/no.demokratiloftet.attestation/3k2"),
       )
     ).valid,
-    true
+    true,
   );
   const moved = await verifyAttestation(
     record,
-    at("at://did:plc:attacker/no.demokratiloftet.attestation/3k2")
+    at("at://did:plc:attacker/no.demokratiloftet.attestation/3k2"),
   );
   assert.equal(moved.reason, "provenance");
   assert.equal(
     check(moved, "signature").ok,
     true,
-    "the signature is still good; only its location is wrong"
+    "the signature is still good; only its location is wrong",
   );
 });
 
@@ -387,7 +387,7 @@ void test("an unknown claim type is refused rather than accepted unvalidated", a
         trustPolicy: policy,
       })
     ).reason,
-    "unknown-claim-type"
+    "unknown-claim-type",
   );
 });
 
@@ -409,7 +409,7 @@ void test("malformed signed payloads and nonfinite policy windows cannot pass ve
           trustPolicy: policy,
         })
       ).reason,
-      "malformed"
+      "malformed",
     );
   }
   for (const maxClockSkewSeconds of [Number.NaN, Infinity, -1]) {
@@ -421,7 +421,7 @@ void test("malformed signed payloads and nonfinite policy windows cannot pass ve
           trustPolicy: { ...policy, maxClockSkewSeconds },
         })
       ).reason,
-      "no-trust-policy"
+      "no-trust-policy",
     );
   }
   assert.equal(
@@ -432,6 +432,6 @@ void test("malformed signed payloads and nonfinite policy windows cannot pass ve
         trustPolicy: { ...policy, maxStatusAgeSeconds: Number.NaN },
       })
     ).reason,
-    "no-trust-policy"
+    "no-trust-policy",
   );
 });

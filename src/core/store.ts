@@ -33,7 +33,7 @@ export class IssuerStore {
   put(row: StoredAttestation) {
     this.db
       .prepare(
-        "INSERT INTO attestations (id,claim_type,subject,claim,issued_at,expires_at,visibility,jws,uri,cid) VALUES (?,?,?,?,?,?,?,?,?,?)"
+        "INSERT INTO attestations (id,claim_type,subject,claim,issued_at,expires_at,visibility,jws,uri,cid) VALUES (?,?,?,?,?,?,?,?,?,?)",
       )
       .run(
         row.id,
@@ -45,7 +45,7 @@ export class IssuerStore {
         row.visibility,
         row.jws,
         row.uri ?? null,
-        row.cid ?? null
+        row.cid ?? null,
       );
   }
   get(id: string) {
@@ -57,7 +57,7 @@ export class IssuerStore {
   active(subject: string, claimType: string, now = new Date().toISOString()) {
     return this.db
       .prepare(
-        "SELECT * FROM attestations WHERE subject=? AND claim_type=? AND revoked_at IS NULL AND expires_at > ? ORDER BY issued_at DESC"
+        "SELECT * FROM attestations WHERE subject=? AND claim_type=? AND revoked_at IS NULL AND expires_at > ? ORDER BY issued_at DESC",
       )
       .all(subject, claimType, now)
       .map(hydrate);
@@ -65,7 +65,7 @@ export class IssuerStore {
   bySubject(subject: string) {
     return this.db
       .prepare(
-        "SELECT * FROM attestations WHERE subject=? ORDER BY issued_at DESC"
+        "SELECT * FROM attestations WHERE subject=? ORDER BY issued_at DESC",
       )
       .all(subject)
       .map(hydrate);
@@ -74,7 +74,7 @@ export class IssuerStore {
     return (
       this.db
         .prepare(
-          "UPDATE attestations SET revoked_at=? WHERE id=? AND revoked_at IS NULL"
+          "UPDATE attestations SET revoked_at=? WHERE id=? AND revoked_at IS NULL",
         )
         .run(at, id).changes > 0
     );
@@ -87,7 +87,7 @@ export class IssuerStore {
   audit(entry: AuditEntry) {
     this.db
       .prepare(
-        "INSERT INTO audit (at,action,outcome,actor,claim_type,subject,detail) VALUES (?,?,?,?,?,?,?)"
+        "INSERT INTO audit (at,action,outcome,actor,claim_type,subject,detail) VALUES (?,?,?,?,?,?,?)",
       )
       .run(
         new Date().toISOString(),
@@ -96,7 +96,7 @@ export class IssuerStore {
         entry.actor ?? null,
         entry.claimType ?? null,
         entry.subject ?? null,
-        entry.detail ?? null
+        entry.detail ?? null,
       );
   }
   recentAudit(limit = 50) {

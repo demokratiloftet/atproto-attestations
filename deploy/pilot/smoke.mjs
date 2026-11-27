@@ -11,7 +11,7 @@ async function request(
   body,
   cookie,
   expected = 200,
-  originHeader = origin
+  originHeader = origin,
 ) {
   const res = await fetch(origin + path, {
     headers: {
@@ -27,7 +27,7 @@ async function request(
   assert.equal(
     res.status,
     expected,
-    `${path}: expected ${expected}, got ${res.status}`
+    `${path}: expected ${expected}, got ${res.status}`,
   );
   const data = await res.json().catch(() => ({}));
   return { cookie: res.headers.get("set-cookie")?.split(";")[0], data };
@@ -36,7 +36,7 @@ const publicState = (await request("/api/state")).data;
 assert.equal(
   publicState.demo,
   true,
-  "Only run against an explicitly labelled sandbox demo"
+  "Only run against an explicitly labelled sandbox demo",
 );
 const signedIn = [];
 for (const account of accounts) {
@@ -56,36 +56,36 @@ const org = publicState.organisations.find(
     candidate.scopes.length >= 2 &&
     signedIn.some((actor) =>
       actor.state.organisations.some(
-        (row) => row.did === candidate.did && row.canReview
-      )
-    )
+        (row) => row.did === candidate.did && row.canReview,
+      ),
+    ),
 );
 assert.ok(
   org,
-  "Smoke test needs an organisation with two scopes and an enrolled reviewer"
+  "Smoke test needs an organisation with two scopes and an enrolled reviewer",
 );
 const reviewer = signedIn.find((actor) =>
-  actor.state.organisations.some((row) => row.did === org.did && row.canReview)
+  actor.state.organisations.some((row) => row.did === org.did && row.canReview),
 );
 const person = signedIn.find(
   (actor) =>
     !actor.state.organisations.some((row) => row.canReview) &&
     !actor.state.grants.some(
-      (grant) => !grant.revoked && Date.parse(grant.expiresAt) > Date.now()
-    )
+      (grant) => !grant.revoked && Date.parse(grant.expiresAt) > Date.now(),
+    ),
 );
 const outsider = signedIn.find(
   (actor) =>
     actor.state.organisations.some(
-      (row) => row.did !== org.did && row.canReview
+      (row) => row.did !== org.did && row.canReview,
     ) &&
     !actor.state.organisations.some(
-      (row) => row.did === org.did && row.canReview
-    )
+      (row) => row.did === org.did && row.canReview,
+    ),
 );
 assert.ok(
   reviewer && person && outsider,
-  "Smoke test needs a person without grants and reviewers from two organisations"
+  "Smoke test needs a person without grants and reviewers from two organisations",
 );
 const sessions = {
   outsider: outsider.cookie,
@@ -122,7 +122,7 @@ await request(
   { terms },
   sessions.person,
   403,
-  "https://untrusted.example"
+  "https://untrusted.example",
 );
 await request("/api/events", event, sessions.person, 403);
 for (const path of [
@@ -141,12 +141,12 @@ try {
     "/api/proposals/approve",
     { id, revision: 1 },
     sessions.outsider,
-    403
+    403,
   );
   await request(
     "/api/proposals/approve",
     { id, revision: 1 },
-    sessions.reviewer
+    sessions.reviewer,
   );
   let proof = (await request(`/api/credential?id=${id}`)).data;
   assert.equal(proof.verification.valid, true);
@@ -166,13 +166,13 @@ try {
     "/api/events",
     { ...event, scope: otherScope },
     sessions.person,
-    403
+    403,
   );
   await request(
     "/api/events",
     { ...event, organisationDid: otherOrg.did },
     sessions.person,
-    403
+    403,
   );
   await request("/api/events", event, sessions.person);
   await request("/api/grants/revoke", { id: grantId }, sessions.reviewer);
@@ -182,14 +182,14 @@ try {
   await request(
     "/api/proposals/change",
     { id, revision: 1, terms: revised },
-    sessions.reviewer
+    sessions.reviewer,
   );
   cleanup[0].revision = 2;
   await request(
     "/api/proposals/approve",
     { id, revision: 1 },
     sessions.person,
-    409
+    409,
   );
   await request("/api/events", event, sessions.person, 403);
   await request("/api/proposals/approve", { id, revision: 2 }, sessions.person);
@@ -206,37 +206,37 @@ try {
     await request(
       "/api/proposals",
       { terms: { ...terms, roleId: "demo.private", visibility: "private" } },
-      sessions.reviewer
+      sessions.reviewer,
     )
   ).data.id;
   cleanup.push({ id: privateId, revision: 1 });
   let proposal = (await getState("person")).proposals.find(
-    (p) => p.id === privateId
+    (p) => p.id === privateId,
   );
   assert.equal(proposal.subjectApproved, false);
   assert.equal(proposal.state, "pending");
   await request(
     "/api/proposals/approve",
     { id: privateId, revision: 1 },
-    sessions.person
+    sessions.person,
   );
   proposal = (await getState("person")).proposals.find(
-    (p) => p.id === privateId
+    (p) => p.id === privateId,
   );
   assert.equal(proposal.verification.valid, true);
   await request(`/api/credential?id=${privateId}`, undefined, undefined, 404);
   assert.equal(
     (await getState("outsider")).proposals.some((p) => p.id === privateId),
-    false
+    false,
   );
   assert.equal(
     (await request("/api/state")).data.publicCredentials.some(
-      (p) => p.id === privateId
+      (p) => p.id === privateId,
     ),
-    false
+    false,
   );
   console.log(
-    "PASS: live HTTPS sessions, both initiation directions, signed public proof, private visibility, organisation/scope isolation, explicit grant, publish, grant revocation, revision invalidation, stale approval, subject withdrawal and gateway refusal."
+    "PASS: live HTTPS sessions, both initiation directions, signed public proof, private visibility, organisation/scope isolation, explicit grant, publish, grant revocation, revision invalidation, stale approval, subject withdrawal and gateway refusal.",
   );
 } finally {
   for (const p of cleanup) {

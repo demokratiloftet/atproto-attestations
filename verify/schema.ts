@@ -110,7 +110,7 @@ export function checkSchema(input: unknown, path = "claim"): Schema {
   }
   if (schema.properties !== undefined) {
     for (const [name, child] of Object.entries(
-      object(schema.properties, `${path}: properties`)
+      object(schema.properties, `${path}: properties`),
     )) {
       checkSchema(child, `${path}.${name}`);
     }
@@ -125,7 +125,7 @@ export function checkSchema(input: unknown, path = "claim"): Schema {
 export function validate(
   value: unknown,
   schema: Schema,
-  path = "claim"
+  path = "claim",
 ): string[] {
   const errors: string[] = [];
   const add = (message: string) => errors.push(`${path}: ${message}`);
@@ -211,7 +211,7 @@ export function validate(
   }
   if (schema.enum && !schema.enum.includes(value)) {
     add(
-      `must be one of ${schema.enum.map((v) => JSON.stringify(v)).join(", ")}`
+      `must be one of ${schema.enum.map((v) => JSON.stringify(v)).join(", ")}`,
     );
   }
   if (schema.const !== undefined && value !== schema.const) {

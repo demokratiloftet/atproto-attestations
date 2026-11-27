@@ -10,7 +10,7 @@ import type { PilotConfig } from "./types.ts";
 
 export function enrolOrganisation(
   config: PilotConfig,
-  input: unknown
+  input: unknown,
 ): PilotConfig {
   const row = object(input, "organisation enrolment");
   const people: unknown = row.people ?? [];
@@ -53,6 +53,6 @@ if (
   }
   const count = enrolFile(configFile, enrolmentFile);
   console.log(
-    `Enrolled organisation; ${count} organisations configured. Restart the app to activate. Credentials were not printed.`
+    `Enrolled organisation; ${count} organisations configured. Restart the app to activate. Credentials were not printed.`,
   );
 }

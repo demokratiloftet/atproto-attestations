@@ -13,13 +13,13 @@ export function createDemoAdapter({ file }: { file: string }) {
     try {
       const data = object(
         JSON.parse(readFileSync(file, "utf-8")),
-        "demo roster"
+        "demo roster",
       );
       return {
         people: Object.fromEntries(
           Object.entries(object(data.people, "demo people")).map(
-            ([did, facts]) => [did, parsePerson(facts)]
-          )
+            ([did, facts]) => [did, parsePerson(facts)],
+          ),
         ),
       };
     } catch (error) {
@@ -74,7 +74,7 @@ export function createDemoAdapter({ file }: { file: string }) {
       }
       if (claimType === "no.nif.clubRole") {
         const membership = (person.clubs || []).find(
-          (c) => c.orgId === request.orgId
+          (c) => c.orgId === request.orgId,
         );
         if (!membership) {
           return {
@@ -95,7 +95,7 @@ export function createDemoAdapter({ file }: { file: string }) {
       }
       if (claimType === "no.nif.instructorLicence") {
         const licence = (person.licences || []).find(
-          (l) => l.discipline === request.discipline
+          (l) => l.discipline === request.discipline,
         );
         if (!licence) {
           return {
@@ -122,7 +122,7 @@ export function createDemoAdapter({ file }: { file: string }) {
       }
       if (claimType === "no.politiet.attest") {
         const attest = (person.attests || []).find(
-          (a) => a.orgId === request.orgId
+          (a) => a.orgId === request.orgId,
         );
         if (!attest) {
           return {

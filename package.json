@@ -24,16 +24,14 @@
     "pretest": "pnpm run build",
     "preissuer": "pnpm run build",
     "preverify:claim": "pnpm run build",
-    "format": "oxfmt --write .",
-    "format:check": "oxfmt --check .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "pack:verifier": "pnpm run build && pnpm --dir dist/verify pack --pack-destination ..",
     "test:package": "pnpm run pack:verifier && node scripts/check-verifier.ts",
     "pilot": "node dist/src/pilot/server.js",
     "test:pilot-integration": "pnpm build && node scripts/pilot-fixture.mjs",
     "pilot:preview": "pnpm build && node scripts/pilot-fixture.mjs --serve",
     "check": "node scripts/checks.ts",
-    "lint": "oxlint --deny-warnings",
-    "fix": "ultracite fix",
     "org:enrol": "node src/pilot/enrol.ts",
     "test:integration": "pnpm --dir pilot-fixture install --frozen-lockfile && pnpm test:pilot-integration"
   },
@@ -45,11 +43,8 @@
   },
   "devDependencies": {
     "@types/node": "24.19.1",
-    "oxfmt": "0.71.0",
-    "oxlint": "1.87.0",
-    "oxlint-tsgolint": "7.0.2004",
-    "typescript": "7.0.2",
-    "ultracite": "8.0.1"
+    "prettier": "3.10.0",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=24.22.1 <25",

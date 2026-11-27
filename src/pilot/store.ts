@@ -14,7 +14,7 @@ interface Documents {
 }
 function decodeDocument<K extends keyof Documents>(
   _kind: K,
-  input: string
+  input: string,
 ): Documents[K] {
   const value: unknown = JSON.parse(input);
   if (
@@ -41,7 +41,7 @@ export class PilotStore {
   }
   get<K extends keyof Documents>(
     kind: K,
-    id: string
+    id: string,
   ): Documents[K] | undefined {
     const r = this.db
       .prepare("SELECT value FROM documents WHERE kind=? AND id=?")
@@ -57,7 +57,7 @@ export class PilotStore {
   put<K extends keyof Documents>(kind: K, value: Documents[K]) {
     this.db
       .prepare(
-        "INSERT INTO documents VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET value=excluded.value"
+        "INSERT INTO documents VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET value=excluded.value",
       )
       .run(kind, value.id, JSON.stringify(value));
   }
@@ -78,11 +78,11 @@ export class PilotStore {
     action: string,
     proposal?: string,
     org?: string,
-    detail?: string
+    detail?: string,
   ) {
     this.db
       .prepare(
-        "INSERT INTO history(at,actor,action,proposal,org,detail) VALUES(?,?,?,?,?,?)"
+        "INSERT INTO history(at,actor,action,proposal,org,detail) VALUES(?,?,?,?,?,?)",
       )
       .run(
         new Date().toISOString(),
@@ -90,7 +90,7 @@ export class PilotStore {
         action,
         proposal ?? null,
         org ?? null,
-        detail ?? null
+        detail ?? null,
       );
   }
   history(orgs: string[], subject: string) {

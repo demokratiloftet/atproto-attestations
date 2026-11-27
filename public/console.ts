@@ -19,7 +19,7 @@ const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Forespørselen feilet.";
 function element<T extends HTMLElement>(
   selector: string,
-  constructor: new () => T
+  constructor: new () => T,
 ): T {
   const node = document.querySelector(selector);
   if (!(node instanceof constructor)) {
@@ -62,7 +62,7 @@ const toast = (message: string) => {
 
 async function api<T = unknown>(
   path: string,
-  { method = "GET", json }: { method?: string; json?: unknown } = {}
+  { method = "GET", json }: { method?: string; json?: unknown } = {},
 ): Promise<T> {
   const response = await fetch(path, {
     headers: {
@@ -84,7 +84,7 @@ async function api<T = unknown>(
       "error" in result &&
       typeof result.error === "string"
         ? result.error
-        : "") || `Utstederen svarte ${response.status}.`
+        : "") || `Utstederen svarte ${response.status}.`,
     );
   }
   // Same-origin typed API; dynamic values are rendered as text or escaped below.
@@ -109,12 +109,12 @@ const name = (did: string) =>
 const options = (
   selection: HTMLSelectElement,
   entries: [string, string][],
-  placeholder?: string
+  placeholder?: string,
 ) => {
   const chosen = selection.value;
   selection.replaceChildren(
     ...(placeholder ? [new Option(placeholder, "")] : []),
-    ...entries.map(([value, label]) => new Option(label, value))
+    ...entries.map(([value, label]) => new Option(label, value)),
   );
   if (entries.some(([value]) => value === chosen)) {
     selection.value = chosen;
@@ -123,7 +123,7 @@ const options = (
 
 function renderIdentity(
   document_: IssuerDocument,
-  health?: { environment: string }
+  health?: { environment: string },
 ) {
   $("#issuer-name").textContent = document_.name;
   $("#issuer-url").textContent = document_.issuer;
@@ -150,14 +150,14 @@ function renderTypes(types: Descriptor[]) {
     <li class="${type.visibility === "restricted" ? "restricted" : ""}">
       <strong>${escape(type.label.nb)}</strong>
       <span>${type.visibility === "restricted" ? "Besvares på spørsmål" : "Publiseres som post"}</span>
-    </li>`
+    </li>`,
     )
     .join("");
   options(
     select("#issue-type"),
     types
       .filter((t) => t.visibility === "public")
-      .map((t) => [t.id, t.label.nb])
+      .map((t) => [t.id, t.label.nb]),
   );
 }
 
@@ -168,7 +168,7 @@ function renderPeople(people: Record<string, Person>) {
     ? entries
         .map(
           ([did, facts]) =>
-            `<li><strong>${escape(name(did))}</strong><span>${escape(describe(facts))}</span></li>`
+            `<li><strong>${escape(name(did))}</strong><span>${escape(describe(facts))}</span></li>`,
         )
         .join("")
     : '<li class="empty">Ingen kontoer ennå.</li>';
@@ -206,7 +206,7 @@ async function renderHeld() {
     return;
   }
   const { attestations } = await api<{ attestations: Held }>(
-    `/held?subject=${encodeURIComponent(subject)}`
+    `/held?subject=${encodeURIComponent(subject)}`,
   );
   $("#held").innerHTML = attestations.length
     ? attestations
@@ -235,7 +235,7 @@ async function renderAudit() {
     <time>${row.at.slice(11, 19)}</time>
     <span class="outcome ${row.outcome === "allowed" ? "allowed" : "denied"}">${escape(action(row))}</span>
     <span class="what">${escape(row.claim_type || "")} ${row.subject ? `om ${escape(name(row.subject))}` : ""} ${row.actor ? `· spurt av ${escape(name(row.actor))}` : ""}</span>
-  </li>`
+  </li>`,
         )
         .join("")
     : '<li class="empty">Ingenting er gjort ennå.</li>';
@@ -260,7 +260,7 @@ function escape(value: unknown) {
     (character) =>
       ({ '"': "&quot;", "&": "&amp;", "'": "&#39;", "<": "&lt;", ">": "&gt;" })[
         character
-      ] ?? character
+      ] ?? character,
   );
 }
 
@@ -272,7 +272,7 @@ const pairs = (text: FormDataEntryValue | null) =>
       .map((part) => {
         const [field, ...rest] = part.split("=");
         return [field, rest.join("=")];
-      })
+      }),
   );
 
 function run(work: Promise<unknown>) {
@@ -332,7 +332,7 @@ $("#seed").addEventListener("click", (event) =>
     }
     await load();
     toast("Tre demokontoer er lagt inn: leder, trener og medlem.");
-  })
+  }),
 );
 
 formElement("#issue-form").addEventListener("submit", (event) => {
@@ -378,7 +378,7 @@ $("#held").addEventListener("click", (event) => {
     });
     await Promise.all([renderHeld(), renderAudit()]);
     toast(
-      "Attestasjonen er trukket tilbake. Statussvaret endrer seg med én gang."
+      "Attestasjonen er trukket tilbake. Statussvaret endrer seg med én gang.",
     );
   });
 });
@@ -392,7 +392,7 @@ formElement("#query-form").addEventListener("submit", (event) => {
     let attestations: AttestationRecord[] = [];
     try {
       const held = await api<{ attestations: Held }>(
-        `/held?subject=${encodeURIComponent(requester)}`
+        `/held?subject=${encodeURIComponent(requester)}`,
       );
       attestations = held.attestations
         .filter((row) => row.claimType === "no.nif.clubRole" && !row.revokedAt)
@@ -456,11 +456,11 @@ formElement("#attest-form").addEventListener("submit", (event) => {
         "error" in result &&
         typeof result.error === "string"
           ? result.error
-          : "") || `Utstederen svarte ${response.status}.`
+          : "") || `Utstederen svarte ${response.status}.`,
       );
     }
     toast(
-      "Attesten er registrert hos utstederen. Den publiseres ingen steder."
+      "Attesten er registrert hos utstederen. Den publiseres ingen steder.",
     );
   });
 });
@@ -479,7 +479,7 @@ async function load() {
     renderIdentity(document_, health);
     renderTypes(types);
     const { people } = await api<{ people: Record<string, Person> }>(
-      "/demo/roster"
+      "/demo/roster",
     );
     renderPeople(people);
     await Promise.all([renderHeld(), renderAudit()]);

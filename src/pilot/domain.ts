@@ -16,7 +16,7 @@ function containsControlCharacter(value: string) {
 export function text(
   input: Record<string, unknown>,
   key: string,
-  max = 120
+  max = 120,
 ): string {
   const value = input[key];
   if (
@@ -33,7 +33,7 @@ export function parseTerms(
   input: Record<string, unknown>,
   people: Person[],
   orgs: Organisation[],
-  now = Date.now()
+  now = Date.now(),
 ): Terms {
   const allowed = new Set([
     "subject",
@@ -112,7 +112,7 @@ export function newProposal(
   terms: Terms,
   actor: string,
   orgApprover: boolean,
-  now = Date.now()
+  now = Date.now(),
 ): Proposal {
   if (actor !== terms.subject && !orgApprover) {
     refuse("You cannot propose on behalf of this organisation.", 403);
