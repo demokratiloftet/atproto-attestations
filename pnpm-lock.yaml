@@ -18,8 +18,8 @@ importers:
         specifier: 0.24.0
         version: 0.24.0
       '@atproto/identity':
-        specifier: 0.5.16
-        version: 0.5.16
+        specifier: 0.5.24
+        version: 0.5.24
       '@atproto/repo':
         specifier: 0.11.6
         version: 0.11.6
@@ -107,8 +107,8 @@ packages:
     resolution: {integrity: sha512-8bLfOnaoWBmg9S8naqzk5mG8zYAXfSKT4odB5OHcCAd1o7p6RFb0Rk9WGobEgboKtxP2CIeul6mzI5PUT4v6Gg==}
     engines: {node: '>=22'}
 
-  '@atproto/identity@0.5.16':
-    resolution: {integrity: sha512-PKXQ5WZ3f+TJZligO58DEwxB84F5+ZlSmE3adN8DhmLSxvk5cQAKAn96IcNRm9DkVNLfv3+/bySDXf8g22KCng==}
+  '@atproto/identity@0.5.24':
+    resolution: {integrity: sha512-VUUa+13/36FDMu7fdWEQC2xKN1L7AIKtXOZyk//V1r61yHSD0tFCVk/YH3TAdULmfWI31X5vq49IPZEsi7dMrQ==}
     engines: {node: '>=22'}
 
   '@atproto/jwk-jose@0.2.4':
@@ -538,10 +538,10 @@ snapshots:
     dependencies:
       zod: 4.6.7
 
-  '@atproto/identity@0.5.16':
+  '@atproto/identity@0.5.24':
     dependencies:
       '@atproto-labs/fetch-node': 0.4.6
-      '@atproto/common-web': 0.5.20
+      '@atproto/common-web': 0.5.18
       '@atproto/crypto': 0.5.8
 
   '@atproto/jwk-jose@0.2.4':
