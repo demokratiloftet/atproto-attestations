@@ -108,7 +108,6 @@ jobs:
           retention-days: 7
           if-no-files-found: error
   check:
-    name: Ready to deploy
     if: always()
     needs: [quality, tests, integration, package, security, image]
     runs-on: ubuntu-24.04
