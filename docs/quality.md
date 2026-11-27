@@ -13,16 +13,16 @@ python3 -m unittest discover -s test -p '*_test.py' # deployment changes
 
 `pnpm check` prints each stage and stops at the first failure. Use `pnpm fix` for Ultracite's safe fixes and formatting, review the diff, then rerun the checks. `pnpm format` only formats. Neither command commits code. Avoid blind `--unsafe` or suggestion fixes: passing style rules must not remove security checks or change workflow behaviour.
 
-| Check | What a failure means | Fix locally |
-| --- | --- | --- |
-| Lint, formatting and types | An Oxlint rule, Oxfmt difference or TypeScript error | `pnpm lint`, `pnpm format:check`, `pnpm typecheck` |
-| Unit and security tests | A workflow or refusal path regressed | `pnpm test` |
-| AT Protocol integration | Real repository signatures, exact CID consent, permissions or revocation failed | `pnpm test:integration` |
-| Standalone verifier package | The consumer package cannot verify independently, its declarations fail, or issuer code leaked into it | `pnpm test:package` |
-| Secrets and dependencies | Gitleaks found a secret, a production dependency has a moderate-or-higher advisory, or deployment checks failed | Rotate any exposed secret; update the dependency; run the Python receiver tests |
-| Build release images | The issuer or affiliation container cannot build from the frozen dependency graph | `docker build .` and `docker build -f deploy/pilot/Dockerfile .` |
-| Ready to deploy | At least one required check failed, was cancelled or skipped | Open the named failed job; never bypass this gate |
-| Deploy VPS demo | Image receipt, container health or public proofs failed | Inspect the deployment log and VPS `release.json`; the receiver attempts to restore the previous image |
+| Check                       | What a failure means                                                                                            | Fix locally                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Lint, formatting and types  | An Oxlint rule, Oxfmt difference or TypeScript error                                                            | `pnpm lint`, `pnpm format:check`, `pnpm typecheck`                                                     |
+| Unit and security tests     | A workflow or refusal path regressed                                                                            | `pnpm test`                                                                                            |
+| AT Protocol integration     | Real repository signatures, exact CID consent, permissions or revocation failed                                 | `pnpm test:integration`                                                                                |
+| Standalone verifier package | The consumer package cannot verify independently, its declarations fail, or issuer code leaked into it          | `pnpm test:package`                                                                                    |
+| Secrets and dependencies    | Gitleaks found a secret, a production dependency has a moderate-or-higher advisory, or deployment checks failed | Rotate any exposed secret; update the dependency; run the Python receiver tests                        |
+| Build release images        | The issuer or affiliation container cannot build from the frozen dependency graph                               | `docker build .` and `docker build -f deploy/pilot/Dockerfile .`                                       |
+| Ready to deploy             | At least one required check failed, was cancelled or skipped                                                    | Open the named failed job; never bypass this gate                                                      |
+| Deploy VPS demo             | Image receipt, container health or public proofs failed                                                         | Inspect the deployment log and VPS `release.json`; the receiver attempts to restore the previous image |
 
 The root configs extend `ultracite/oxlint/core` and `ultracite/oxfmt`. Type-aware correctness rules apply to TypeScript. Browser/operator JavaScript still receives syntax/security linting. The verifier cannot import `src/`; package tests also check its distributed files. Inline comments document repository-specific exceptions: ordered remote writes, Node callbacks, tested runtime guards and existing schema validators. These are reviewed exceptions, not an unmodified stock preset. New workflow helpers retain the preset's complexity limit of 20. Do not weaken rules merely to pass a check.
 

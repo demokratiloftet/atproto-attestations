@@ -27,7 +27,7 @@ function quit(code: number, detail: string): never {
 
 const source =
   args.find(
-    (a) => !a.startsWith("--") && !args[args.indexOf(a) - 1]?.startsWith("--")
+    (a) => !a.startsWith("--") && !args[args.indexOf(a) - 1]?.startsWith("--"),
   ) ?? args[0];
 if (!source || has("help")) {
   quit(2, USAGE);
@@ -45,7 +45,7 @@ try {
 }
 try {
   trustPolicy = parseTrustPolicy(
-    JSON.parse(readFileSync(flag("trust") || "trust-policy.json", "utf-8"))
+    JSON.parse(readFileSync(flag("trust") || "trust-policy.json", "utf-8")),
   );
 } catch (error) {
   quit(2, `Could not read the trust policy: ${message(error)}\n\n${USAGE}`);
@@ -53,10 +53,10 @@ try {
 const directory = flag("claim-types") || "claim-types";
 try {
   for (const file of readdirSync(directory).filter((name) =>
-    name.endsWith(".json")
+    name.endsWith(".json"),
   )) {
     const descriptor = parseDescriptor(
-      JSON.parse(readFileSync(join(directory, file), "utf-8"))
+      JSON.parse(readFileSync(join(directory, file), "utf-8")),
     );
     claimTypes[descriptor.id] = descriptor;
   }
@@ -114,12 +114,12 @@ if (has("quiet")) {
   console.log(`${result.valid ? "GODTATT" : "AVVIST"}  ${result.reason}`);
   if (attestation) {
     console.log(
-      `  ${attestation.claimType}  ${JSON.stringify(attestation.claim)}\n  om ${attestation.subject}\n  fra ${attestation.issuer}\n  gyldig ${attestation.issuedAt} → ${attestation.expiresAt}${attestation.demo ? "\n  DEMO: syntetisk attestasjon" : ""}`
+      `  ${attestation.claimType}  ${JSON.stringify(attestation.claim)}\n  om ${attestation.subject}\n  fra ${attestation.issuer}\n  gyldig ${attestation.issuedAt} → ${attestation.expiresAt}${attestation.demo ? "\n  DEMO: syntetisk attestasjon" : ""}`,
     );
   }
   for (const check of result.checks) {
     console.log(
-      `  ${check.ok ? "✓" : "✗"} ${check.name}${check.detail ? `: ${check.detail}` : ""}`
+      `  ${check.ok ? "✓" : "✗"} ${check.name}${check.detail ? `: ${check.detail}` : ""}`,
     );
   }
 }

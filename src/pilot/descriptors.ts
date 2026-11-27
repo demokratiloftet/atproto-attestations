@@ -6,7 +6,7 @@ const string: Schema = { maxLength: 300, minLength: 1, type: "string" };
 function descriptor(
   id: string,
   label: string,
-  properties: Record<string, Schema>
+  properties: Record<string, Schema>,
 ): Descriptor {
   return parseDescriptor({
     claim: {

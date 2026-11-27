@@ -7,7 +7,7 @@ export class PdsError extends Error {
   override name = "PdsError";
   constructor(
     public readonly code: string,
-    public readonly status: number
+    public readonly status: number,
   ) {
     super(`PDS: ${code}`);
   }
@@ -53,12 +53,12 @@ export function createAtprotoPublisher({
     method: string,
     data: Record<string, unknown>,
     token?: string,
-    write = false
+    write = false,
   ) {
     const url = new URL(`/xrpc/${method}`, origin);
     if (!write) {
       url.search = new URLSearchParams(
-        Object.entries(data).map(([key, value]) => [key, String(value)])
+        Object.entries(data).map(([key, value]) => [key, String(value)]),
       ).toString();
     }
     const response = await fetchImpl(url, {
@@ -73,12 +73,12 @@ export function createAtprotoPublisher({
     });
     const result = object(
       await response.json().catch(() => ({})),
-      "PDS response"
+      "PDS response",
     );
     if (!response.ok) {
       throw new PdsError(
         typeof result.error === "string" ? result.error : "Unavailable",
-        response.status
+        response.status,
       );
     }
     return result;
@@ -88,7 +88,7 @@ export function createAtprotoPublisher({
       "com.atproto.server.createSession",
       { identifier, password },
       undefined,
-      true
+      true,
     );
     session = {
       accessJwt: text(result, "accessJwt"),
@@ -97,7 +97,7 @@ export function createAtprotoPublisher({
     return session;
   };
   async function authenticated<T>(
-    run: (session: Session) => Promise<T>
+    run: (session: Session) => Promise<T>,
   ): Promise<T> {
     const current = session ?? (await login());
     try {
@@ -117,7 +117,7 @@ export function createAtprotoPublisher({
       return {
         repo: text(
           await rpc("com.atproto.repo.describeRepo", { repo: identifier }),
-          "did"
+          "did",
         ),
         service: origin.href,
       };
@@ -129,8 +129,8 @@ export function createAtprotoPublisher({
           "com.atproto.repo.createRecord",
           { collection, record, repo: s.did, validate: false },
           s.accessJwt,
-          true
-        )
+          true,
+        ),
       );
       return { cid: text(result, "cid"), uri: text(result, "uri") };
     },
@@ -145,8 +145,8 @@ export function createAtprotoPublisher({
             "com.atproto.repo.deleteRecord",
             { collection, repo: s.did, rkey },
             s.accessJwt,
-            true
-          )
+            true,
+          ),
         );
       } catch (error) {
         if (error instanceof PdsError && error.code === "RecordNotFound") {

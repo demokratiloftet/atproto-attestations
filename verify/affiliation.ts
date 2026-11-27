@@ -9,7 +9,7 @@ export interface StrongRef {
 /** The resolver must verify the repository commit signature and record inclusion,
  * and check the current record CID. Never implement it as unverified JSON fetch. */
 export type AuthenticatedRecordResolver = (
-  reference: StrongRef
+  reference: StrongRef,
 ) => Promise<Record<string, unknown>>;
 export async function verifyPublicAffiliation(
   input: unknown,
@@ -18,7 +18,7 @@ export async function verifyPublicAffiliation(
   options: VerifyOptions & {
     organisationDid: string;
     readRecord: AuthenticatedRecordResolver;
-  }
+  },
 ) {
   const result = await verifyAttestation(input, {
     ...options,
@@ -57,10 +57,10 @@ export async function verifyPublicAffiliation(
   }
   if (
     !affiliation.uri.startsWith(
-      `at://${options.organisationDid}/no.demokratiloftet.attestation/`
+      `at://${options.organisationDid}/no.demokratiloftet.attestation/`,
     ) ||
     !acceptance.uri.startsWith(
-      `at://${result.attestation.subject}/no.demokratiloftet.affiliation.acceptance/`
+      `at://${result.attestation.subject}/no.demokratiloftet.affiliation.acceptance/`,
     )
   ) {
     return fail("wrong-repository");

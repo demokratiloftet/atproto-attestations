@@ -26,7 +26,7 @@ const licence: Schema = {
 void test("a claim payload is accepted only when it matches the declared schema", () => {
   assert.deepEqual(
     validate({ discipline: "svomming", level: "instruktor-2" }, licence),
-    []
+    [],
   );
   assert.deepEqual(
     validate(
@@ -38,9 +38,9 @@ void test("a claim payload is accepted only when it matches the declared schema"
         tags: ["x"],
         validFrom: "2026-09-17T10:00:00Z",
       },
-      licence
+      licence,
     ),
-    []
+    [],
   );
 });
 
@@ -66,18 +66,18 @@ void test("every rejection names the field that failed", () => {
     assert.match(
       errors.join(" "),
       new RegExp(field, "u"),
-      `wrong field for ${JSON.stringify(value)}`
+      `wrong field for ${JSON.stringify(value)}`,
     );
   }
 });
 
 void test("__proto__ and prototype pollution attempts are not treated as valid claims", () => {
   const payload = JSON.parse(
-    '{"discipline":"svomming","level":"a","__proto__":{"admin":true}}'
+    '{"discipline":"svomming","level":"a","__proto__":{"admin":true}}',
   );
   assert.match(
     validate(payload, licence).join(" "),
-    /unexpected property "__proto__"/u
+    /unexpected property "__proto__"/u,
   );
   assert.equal(Object.hasOwn({}, "admin"), false);
 });
@@ -138,7 +138,7 @@ void test("a descriptor is parsed, and a broken one is refused at load time", ()
     assert.throws(
       () => parseDescriptor(value),
       Error,
-      `accepted ${JSON.stringify(value).slice(0, 80)}`
+      `accepted ${JSON.stringify(value).slice(0, 80)}`,
     );
   }
 });
@@ -158,15 +158,15 @@ void test("where-matching binds a delegate to the club named in the request", ()
   const context = { request: { orgId: "fjord" }, subject: "did:plc:coach" };
   assert.equal(
     matchWhere({ orgId: "fjord", role: "leder" }, where, context).ok,
-    true
+    true,
   );
   assert.equal(
     matchWhere({ orgId: "marka", role: "leder" }, where, context).ok,
-    false
+    false,
   );
   assert.equal(
     matchWhere({ orgId: "fjord", role: "trener" }, where, context).ok,
-    false
+    false,
   );
   assert.equal(matchWhere({ orgId: "fjord" }, where, context).ok, false);
 });
@@ -186,7 +186,7 @@ void test("schema metadata has the declared types; unsupported constraints canno
     assert.throws(() => checkSchema(invalid));
   }
   assert.throws(() =>
-    parseDescriptor({ ...descriptor, label: { en: 42, nb: "Rolle" } })
+    parseDescriptor({ ...descriptor, label: { en: 42, nb: "Rolle" } }),
   );
   assert.throws(() =>
     parseDescriptor({
@@ -197,6 +197,6 @@ void test("schema metadata has the declared types; unsupported constraints canno
         requesters: [{ kind: "self" }],
       },
       visibility: "restricted",
-    })
+    }),
   );
 });

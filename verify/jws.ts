@@ -49,7 +49,7 @@ export function decodeCompact(token: unknown) {
 }
 
 export async function importVerifyKey(
-  input: unknown
+  input: unknown,
 ): Promise<webcrypto.CryptoKey> {
   const jwk = object(input, "key");
   if (
@@ -68,7 +68,7 @@ export async function importVerifyKey(
     { crv: "P-256", ext: true, kty: "EC", x: jwk.x, y: jwk.y },
     { name: "ECDSA", namedCurve: "P-256" },
     false,
-    ["verify"]
+    ["verify"],
   );
 }
 
@@ -76,7 +76,7 @@ export async function importVerifyKey(
 // absent from the accepted set is rejected rather than tried against every key.
 export async function verifyCompact(
   token: unknown,
-  jwks: Jwk[]
+  jwks: Jwk[],
 ): Promise<Record<string, unknown>> {
   const { header, payload, signing, signature } = decodeCompact(token);
   if (header.alg !== ALG) {
@@ -91,7 +91,7 @@ export async function verifyCompact(
   const candidates = (jwks || []).filter((jwk) => jwk?.kid === header.kid);
   if (!candidates.length) {
     fail(
-      `No usable key for kid ${(JSON.stringify(header.kid) ?? "missing").slice(0, 64)}`
+      `No usable key for kid ${(JSON.stringify(header.kid) ?? "missing").slice(0, 64)}`,
     );
   }
   const bytes = Buffer.from(signature, "base64url");
@@ -102,7 +102,7 @@ export async function verifyCompact(
         { hash: "SHA-256", name: "ECDSA" },
         key,
         bytes,
-        Buffer.from(signing)
+        Buffer.from(signing),
       )
     ) {
       return payload;
@@ -116,8 +116,8 @@ export async function thumbprint(jwk: Jwk) {
   const digest = await webcrypto.subtle.digest(
     "SHA-256",
     Buffer.from(
-      JSON.stringify({ crv: jwk.crv, kty: jwk.kty, x: jwk.x, y: jwk.y })
-    )
+      JSON.stringify({ crv: jwk.crv, kty: jwk.kty, x: jwk.x, y: jwk.y }),
+    ),
   );
   return Buffer.from(digest).toString("base64url");
 }

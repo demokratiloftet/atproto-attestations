@@ -14,7 +14,7 @@ export class PilotRepository implements Repository {
   private readonly allowed: Set<string>;
   constructor(
     private readonly config: PilotConfig,
-    private readonly store: AuthStore
+    private readonly store: AuthStore,
   ) {
     this.resolver = new IdResolver({
       fetch: restrictedFetch({ [new URL(config.plc).origin]: config.plc }),
@@ -34,11 +34,11 @@ export class PilotRepository implements Repository {
             ? input
             : input instanceof URL
               ? input.href
-              : input.url
+              : input.url,
         );
         if (
           ![new URL(this.config.pds).origin, this.config.pdsCanonical].includes(
-            url.origin
+            url.origin,
           )
         ) {
           throw new Error("Unexpected PDS destination");
@@ -105,7 +105,7 @@ export class PilotRepository implements Repository {
     did: string,
     collection: string,
     rkey: string,
-    record: Record<string, unknown>
+    record: Record<string, unknown>,
   ) {
     const agent = await this.agent(did);
     // rkey is persisted before this call. Unknown outcomes reconcile at this key.
@@ -121,7 +121,7 @@ export class PilotRepository implements Repository {
   async read(ref: Ref) {
     const match =
       /^at:\/\/(did:plc:[a-z2-7]+)\/([a-zA-Z0-9.]+)\/([a-zA-Z0-9-]+)$/u.exec(
-        ref.uri
+        ref.uri,
       );
     if (!match || !this.allowed.has(match[1])) {
       throw new Error("Untrusted repository");
@@ -146,7 +146,7 @@ export class PilotRepository implements Repository {
     }
     const { signingKey } = await this.resolver.did.resolveAtprotoData(
       did,
-      true
+      true,
     );
     const proof = await agent.com.atproto.sync.getRecord({
       collection,
@@ -155,7 +155,7 @@ export class PilotRepository implements Repository {
     });
     const records = await verifyRecords(proof.data, did, signingKey);
     const record = records.find(
-      (r) => r.collection === collection && r.rkey === rkey
+      (r) => r.collection === collection && r.rkey === rkey,
     )?.record;
     if (!record) {
       throw new Error("Missing record inclusion proof");

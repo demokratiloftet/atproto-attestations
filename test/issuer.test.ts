@@ -129,7 +129,7 @@ void test("without the required identity assurance, nothing is issued", async ()
       error instanceof Error &&
       "status" in error &&
       error.status === 403 &&
-      /identitet|assurance|kobling/iu.test(error.message)
+      /identitet|assurance|kobling/iu.test(error.message),
   );
 });
 
@@ -164,7 +164,7 @@ void test("a club leader may issue a role for someone in their own club, and onl
         subjectAttestations: [await linked(COACH)],
       }),
     (error) =>
-      error instanceof Error && "status" in error && error.status === 403
+      error instanceof Error && "status" in error && error.status === 403,
   );
 });
 
@@ -183,7 +183,7 @@ void test("the adapter can refuse, and its refusal is not a policy failure", asy
       error instanceof Error &&
       "status" in error &&
       error.status === 422 &&
-      /lisens/iu.test(error.message)
+      /lisens/iu.test(error.message),
   );
 });
 
@@ -203,7 +203,7 @@ void test("a lifetime is capped by the claim type and may be shortened by the ad
   assert.equal(
     days,
     180,
-    "the adapter asked for 180, the claim type allows 365"
+    "the adapter asked for 180, the claim type allows 365",
   );
 });
 
@@ -229,13 +229,13 @@ void test("a restricted claim is never published, and is answered only to an aut
   assert.equal(
     attest.uri,
     undefined,
-    "a restricted claim has no public record"
+    "a restricted claim has no public record",
   );
   assert.equal(
     [...publisher.records.values()].some(
-      (r) => r.view?.claimType === "no.politiet.attest"
+      (r) => r.view?.claimType === "no.politiet.attest",
     ),
-    false
+    false,
   );
 
   const asLeader = await issuer.query({
@@ -248,7 +248,7 @@ void test("a restricted claim is never published, and is answered only to an aut
   assert.deepEqual(
     Object.keys(asLeader).toSorted(),
     ["answer", "checkedAt", "claimType", "subject"],
-    "the answer carries no evidence"
+    "the answer carries no evidence",
   );
 
   for (const [who, requester, request] of [
@@ -270,7 +270,7 @@ void test("a restricted claim is never published, and is answered only to an aut
         }),
       (error) =>
         error instanceof Error && "status" in error && error.status === 403,
-      `${who} was answered`
+      `${who} was answered`,
     );
   }
 });
@@ -317,7 +317,7 @@ void test("revocation removes the published record and flips the signed status",
         trustPolicy: policy,
       })
     ).valid,
-    true
+    true,
   );
   assert.equal(
     (
@@ -326,12 +326,12 @@ void test("revocation removes the published record and flips the signed status",
         requester: { did: COACH },
       })
     ).revoked,
-    true
+    true,
   );
   assert.equal(
     publisher.records.has(result.uri ?? ""),
     false,
-    "the public record is withdrawn too"
+    "the public record is withdrawn too",
   );
 
   const after = await verifyAttestation(result.record, {
@@ -382,11 +382,11 @@ void test("every restricted question is written to the audit trail, refusals inc
     queries
       .map((row) => String(row.outcome))
       .toSorted((left, right) => left.localeCompare(right)),
-    ["allowed", "denied"]
+    ["allowed", "denied"],
   );
   assert.equal(
     queries.every((row) => row.actor && row.subject === COACH),
-    true
+    true,
   );
 });
 
@@ -401,6 +401,6 @@ void test("an unknown claim type is refused before anything else happens", async
         subject: COACH,
       }),
     (error) =>
-      error instanceof Error && "status" in error && error.status === 404
+      error instanceof Error && "status" in error && error.status === 404,
   );
 });

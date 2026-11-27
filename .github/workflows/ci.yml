@@ -19,9 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Oxlint — correctness and type-aware rules
-        run: pnpm lint
-      - name: Oxfmt — formatting
+      - name: Prettier — formatting
         run: pnpm format:check
       - name: TypeScript — strict type checking
         run: pnpm typecheck

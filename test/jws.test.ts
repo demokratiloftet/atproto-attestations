@@ -14,7 +14,7 @@ void test("a signed attestation verifies with the matching public key only", asy
   assert.deepEqual(await verifyCompact(jws, [key.publicJwk]), payload);
   await assert.rejects(
     () => verifyCompact(jws, [other.publicJwk]),
-    /signature/u
+    /signature/u,
   );
   await assert.rejects(() => verifyCompact(jws, []), /no usable key/iu);
 });
@@ -37,20 +37,20 @@ void test("tampering with the payload, header or signature fails", async () => {
   const forged = swap({ ...payload, sub: "did:plc:attacker" });
   await assert.rejects(
     () => verifyCompact(`${header}.${forged}.${signature}`, [key.publicJwk]),
-    /signature/u
+    /signature/u,
   );
   await assert.rejects(
     () =>
       verifyCompact(`${header}.${body}.${signature.slice(0, -2)}AA`, [
         key.publicJwk,
       ]),
-    /signature/u
+    /signature/u,
   );
   // An unsigned "alg: none" token must never be accepted, however well-formed.
   const none = swap({ alg: "none", kid: "key-1", typ: "attest+jws" });
   await assert.rejects(
     () => verifyCompact(`${none}.${body}.`, [key.publicJwk]),
-    /algorithm/u
+    /algorithm/u,
   );
 });
 
@@ -60,11 +60,11 @@ void test("a key is selected by kid, and an unknown kid is not silently ignored"
   const jws = await signCompact(key, payload);
   assert.deepEqual(
     await verifyCompact(jws, [stale.publicJwk, key.publicJwk]),
-    payload
+    payload,
   );
   await assert.rejects(
     () => verifyCompact(jws, [stale.publicJwk]),
-    /no usable key/iu
+    /no usable key/iu,
   );
 });
 
@@ -73,7 +73,7 @@ void test("malformed tokens are rejected before any cryptography", () => {
     assert.throws(
       () => decodeCompact(bad),
       /token/iu,
-      `accepted ${JSON.stringify(bad)}`
+      `accepted ${JSON.stringify(bad)}`,
     );
   }
 });
@@ -84,6 +84,6 @@ void test("thumbprints identify a key independently of its id", async () => {
   assert.equal(await thumbprint(key.publicJwk), await thumbprint(renamed));
   assert.notEqual(
     await thumbprint(key.publicJwk),
-    await thumbprint((await generateKeyPair("key-1")).publicJwk)
+    await thumbprint((await generateKeyPair("key-1")).publicJwk),
   );
 });
