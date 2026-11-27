@@ -14,7 +14,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
   const environment = env.ISSUER_ENV || "local";
   const local = environment === "local";
   const { origin } = new URL(
-    env.ISSUER_ORIGIN || (local ? "http://127.0.0.1:3011" : "")
+    env.ISSUER_ORIGIN || (local ? "http://127.0.0.1:3011" : ""),
   );
   if (
     local &&
@@ -24,7 +24,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
   }
   if (!local && !origin.startsWith("https:")) {
     throw new Error(
-      "A shared issuer must be reached over HTTPS: set ISSUER_ORIGIN"
+      "A shared issuer must be reached over HTTPS: set ISSUER_ORIGIN",
     );
   }
 
@@ -45,7 +45,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
               token: "local-demo-politiet",
             },
           ])
-        : "[]")
+        : "[]"),
   );
   if (!Array.isArray(rawClients) || !rawClients.length) {
     throw new Error("Configure at least one client in ISSUER_CLIENTS_JSON");
@@ -64,7 +64,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
       (!local && client.token.length < 24)
     ) {
       throw new Error(
-        `Client ${String(client.id)} needs a nonempty token (at least 24 characters when shared)`
+        `Client ${String(client.id)} needs a nonempty token (at least 24 characters when shared)`,
       );
     }
     if (
@@ -85,7 +85,7 @@ export function readConfig(env = process.env, root = process.cwd()) {
     !(env.ATPROTO_SERVICE && env.ATPROTO_IDENTIFIER && env.ATPROTO_PASSWORD)
   ) {
     throw new Error(
-      "Publishing to AT Protocol needs ATPROTO_SERVICE, ATPROTO_IDENTIFIER and ATPROTO_PASSWORD"
+      "Publishing to AT Protocol needs ATPROTO_SERVICE, ATPROTO_IDENTIFIER and ATPROTO_PASSWORD",
     );
   }
 

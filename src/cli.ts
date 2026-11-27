@@ -94,14 +94,14 @@ try {
   } else if (command === "seed") {
     if (!config.demo) {
       throw new Error(
-        "Seeding synthetic people is only available in a demo deployment."
+        "Seeding synthetic people is only available in a demo deployment.",
       );
     }
     const people: Record<string, Person> = {};
     for (const [role, facts] of Object.entries(CAST)) {
       people[`did:plc:demo-${role}`] = adapter.enrol(
         `did:plc:demo-${role}`,
-        facts
+        facts,
       );
     }
     out({ demo: true, people: Object.keys(people) });
@@ -115,7 +115,7 @@ try {
           did: flag("requester-did") || flag("subject"),
         },
         subject: required("subject"),
-      })
+      }),
     );
   } else if (command === "revoke") {
     out(
@@ -124,7 +124,7 @@ try {
         id: flag("id"),
         requester: { client: flag("client"), did: flag("requester-did") },
         subject: flag("subject"),
-      })
+      }),
     );
   } else if (command === "held") {
     out(issuer.held(required("subject")));
@@ -136,7 +136,7 @@ try {
   }
 } catch (error) {
   console.error(
-    `${error instanceof Error && "status" in error && typeof error.status === "number" ? error.status : 500}: ${message(error)}`
+    `${error instanceof Error && "status" in error && typeof error.status === "number" ? error.status : 500}: ${message(error)}`,
   );
   process.exit(1);
 }

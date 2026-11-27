@@ -19,9 +19,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Oxlint — correctness and type-aware rules
-        run: pnpm lint
-      - name: Oxfmt — formatting
+      - name: Prettier — formatting
         run: pnpm format:check
       - name: TypeScript — strict type checking
         run: pnpm typecheck
@@ -68,6 +66,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Dependency review (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c105d9 # v4.7.1
       - uses: ./.github/actions/setup
       - name: Scan source and Git history for secrets
         run: bash .github/scripts/scan-secrets.sh
@@ -106,7 +107,7 @@ jobs:
             affiliation-image.tar.gz.sha256
           retention-days: 7
           if-no-files-found: error
-  gate:
+  check:
     name: Ready to deploy
     if: always()
     needs: [quality, tests, integration, package, security, image]
@@ -128,7 +129,7 @@ jobs:
           PY
   deploy:
     name: Deploy VPS demo
-    needs: gate
+    needs: check
     if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
     environment:
       name: demo

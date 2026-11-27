@@ -80,7 +80,7 @@ const setup = async () => {
   const role = async (
     subject: string,
     claim: Claim,
-    overrides: Partial<AttestationOptions> = {}
+    overrides: Partial<AttestationOptions> = {},
   ) =>
     (
       await createAttestation({
@@ -96,7 +96,7 @@ const setup = async () => {
     ).record;
   const evaluate = (
     rules: RequesterRule[] | undefined,
-    context: Omit<PolicyContext, "trustPolicy" | "claimTypes">
+    context: Omit<PolicyContext, "trustPolicy" | "claimTypes">,
   ) =>
     evaluateRequester(rules, {
       claimTypes,
@@ -118,7 +118,7 @@ void test("self-service: the holder may ask about their own account, and nobody 
         subject: COACH,
       })
     ).allowed,
-    true
+    true,
   );
   const denied = await evaluate(rules, {
     request: {},
@@ -197,7 +197,7 @@ void test("expired or forged evidence does not authorise anything", async () => 
     await role(
       LEADER,
       { orgId: "fjord", role: "leder" },
-      { lifetimeDays: 1, now: NOW - 5 * 86_400_000 }
+      { lifetimeDays: 1, now: NOW - 5 * 86_400_000 },
     ),
   ];
   assert.equal((await evaluate(rules, context(expired))).allowed, false);
@@ -234,7 +234,7 @@ void test("a trusted backend client may be named directly, and only the named on
         subject: COACH,
       })
     ).allowed,
-    true
+    true,
   );
   assert.equal(
     (
@@ -244,7 +244,7 @@ void test("a trusted backend client may be named directly, and only the named on
         subject: COACH,
       })
     ).allowed,
-    false
+    false,
   );
   assert.equal(
     (
@@ -254,7 +254,7 @@ void test("a trusted backend client may be named directly, and only the named on
         subject: COACH,
       })
     ).allowed,
-    false
+    false,
   );
 });
 

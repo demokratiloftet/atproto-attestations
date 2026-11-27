@@ -23,7 +23,7 @@ const call = (
     method = "GET",
     token = "test-client-token-0123456789",
     json,
-  }: { method?: string; token?: string | null; json?: unknown } = {}
+  }: { method?: string; token?: string | null; json?: unknown } = {},
 ) =>
   fetch(`${base}${path}`, {
     headers: {
@@ -86,17 +86,17 @@ void test("the key document and trust policy are public; everything else needs a
   assert.equal(
     document.keys[0].d,
     undefined,
-    "the private key must never be served"
+    "the private key must never be served",
   );
   assert.equal(document.demo, true);
   assert.equal(
     (await (await call("/trust-policy.json", { token: null })).json()).trust
       .length,
-    1
+    1,
   );
   assert.equal(
     (await call("/issue", { json: {}, method: "POST", token: null })).status,
-    401
+    401,
   );
   assert.equal(
     (
@@ -106,7 +106,7 @@ void test("the key document and trust policy are public; everything else needs a
         token: "wrong-token-000000000000000",
       })
     ).status,
-    401
+    401,
   );
 });
 
@@ -148,7 +148,7 @@ void test("the full journey over HTTP: enrol, issue, verify from the published p
           method: "POST",
         })
       ).status,
-      200
+      200,
     );
   }
 
@@ -233,7 +233,7 @@ void test("the full journey over HTTP: enrol, issue, verify from the published p
   assert.equal(
     (await issued.json()).uri,
     undefined,
-    "a restricted claim is never published"
+    "a restricted claim is never published",
   );
   const asLeader = await call("/query", {
     json: {
@@ -267,7 +267,7 @@ void test("the full journey over HTTP: enrol, issue, verify from the published p
         })
       ).json()
     ).revoked,
-    true
+    true,
   );
   const afterRevoke = await verifyAttestation(licence.record, {
     claimTypes,
@@ -280,9 +280,9 @@ void test("the full journey over HTTP: enrol, issue, verify from the published p
   assert.equal(
     audit.entries.some(
       (e: { action: string; outcome: string }) =>
-        e.action === "query" && e.outcome === "denied"
+        e.action === "query" && e.outcome === "denied",
     ),
-    true
+    true,
   );
 });
 
@@ -309,7 +309,7 @@ void test("refuses rebinding and foreign browser origins even with a valid token
         (response) => {
           response.resume();
           resolve(response.statusCode);
-        }
+        },
       );
       req.on("error", reject);
       req.end();
@@ -338,7 +338,7 @@ void test("malformed request objects, evidence and demo facts fail before writes
   }
   assert.equal(
     (await call("/revoke", { json: {}, method: "POST" })).status,
-    400
+    400,
   );
   assert.equal(
     (
@@ -347,6 +347,6 @@ void test("malformed request objects, evidence and demo facts fail before writes
         method: "POST",
       })
     ).status,
-    400
+    400,
   );
 });

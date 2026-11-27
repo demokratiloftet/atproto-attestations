@@ -128,7 +128,7 @@ export function parseDescriptor(input: unknown): Descriptor {
       bad("query-only disclosure must name who may ask");
     }
     disclosureRules = disclosure.requesters.map((rule) =>
-      parseRule(rule, fields)
+      parseRule(rule, fields),
     );
     if (
       !Array.isArray(disclosure.purposes) ||
@@ -148,7 +148,7 @@ export function parseDescriptor(input: unknown): Descriptor {
         kind: "attestation",
         where: requirement.where,
       },
-      fields
+      fields,
     );
     if (rule.kind === "attestation") {
       subjectAssurance = { claimType: rule.claimType, where: rule.where };
@@ -205,7 +205,7 @@ export function resolveBinding(expression: unknown, context: BindingContext) {
 export function matchWhere(
   claim: unknown,
   where: Claim | undefined,
-  context: BindingContext
+  context: BindingContext,
 ): Match {
   for (const [field, expected] of Object.entries(where || {})) {
     let value;

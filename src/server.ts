@@ -76,7 +76,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   const send = (
     code: number,
     data: unknown,
-    type = "application/json; charset=utf-8"
+    type = "application/json; charset=utf-8",
   ) => {
     res.writeHead(code, { "content-type": type });
     res.end(
@@ -84,7 +84,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
         ? JSON.stringify(data)
         : typeof data === "string"
           ? data
-          : String(data)
+          : String(data),
     );
   };
   try {
@@ -93,7 +93,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     res.setHeader("referrer-policy", "no-referrer");
     res.setHeader(
       "content-security-policy",
-      "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+      "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     );
     const url = new URL(req.url || "/", config.origin);
     const path = url.pathname;
@@ -125,7 +125,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     if (req.method === "GET" && path.startsWith("/status/")) {
       return send(
         200,
-        await issuer.status(decodeURIComponent(path.slice("/status/".length)))
+        await issuer.status(decodeURIComponent(path.slice("/status/".length))),
       );
     }
     if (req.method === "GET" && pages[path]) {
@@ -133,7 +133,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       return send(
         200,
         await readFile(new URL(`../public/${file}`, import.meta.url), "utf-8"),
-        `${type}; charset=utf-8`
+        `${type}; charset=utf-8`,
       );
     }
 
@@ -244,7 +244,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
           id: field("id", true) || undefined,
           requester: requesterOf(input, caller),
           subject: field("subject", true) || undefined,
-        })
+        }),
       );
     }
     if (path === "/query") {
@@ -258,7 +258,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
           request: fields("request"),
           requester: requesterOf(input, caller),
           subject: field("subject"),
-        })
+        }),
       );
     }
     // Synthetic data only. A real deployment has no endpoint that invents facts.
@@ -299,7 +299,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     if (status >= 500) {
       console.error(
         "Issuer request failed:",
-        error instanceof Error ? error.name : "UnknownError"
+        error instanceof Error ? error.name : "UnknownError",
       );
     }
     send(status, {
@@ -318,14 +318,14 @@ const server = http.createServer((req, res) => {
 
 server.listen(config.port, config.host, () =>
   console.log(
-    `Attestation issuer: ${config.origin} (${config.environment}, publisher: ${config.publisher})`
-  )
+    `Attestation issuer: ${config.origin} (${config.environment}, publisher: ${config.publisher})`,
+  ),
 );
 for (const signal of ["SIGTERM", "SIGINT"]) {
   process.on(signal, () =>
     server.close(() => {
       store.close();
       process.exit(0);
-    })
+    }),
   );
 }

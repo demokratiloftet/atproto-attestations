@@ -25,7 +25,7 @@ async function roleCode(label: string, context: ProposalContext) {
   const matches = new Set(
     context.roles
       .filter((role) => normaliseRole(role.roleLabel) === normaliseRole(label))
-      .map((role) => role.roleId)
+      .map((role) => role.roleId),
   );
   if (matches.size === 1) {
     const [code] = matches;
@@ -34,14 +34,14 @@ async function roleCode(label: string, context: ProposalContext) {
   // A full digest avoids conflating different labels after removing accents or punctuation.
   const digest = await crypto.subtle.digest(
     "SHA-256",
-    new TextEncoder().encode(normaliseRole(label))
+    new TextEncoder().encode(normaliseRole(label)),
   );
   return `role.${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 export async function proposalTerms(
   fields: ProposalFields,
   context: ProposalContext,
-  now = Date.now()
+  now = Date.now(),
 ): Promise<Terms> {
   const roleLabel = fields.roleLabel.trim();
   if (!roleLabel) {
@@ -55,7 +55,7 @@ export async function proposalTerms(
   }
   const validFrom = Math.max(
     now,
-    Date.parse(context.previous?.validFrom ?? new Date(now).toISOString())
+    Date.parse(context.previous?.validFrom ?? new Date(now).toISOString()),
   );
   const expiresAt =
     fields.duration === "keep" && context.previous

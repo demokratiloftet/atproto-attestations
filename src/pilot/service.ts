@@ -58,7 +58,7 @@ export class PilotService {
   private queue: Promise<unknown> = Promise.resolve();
   constructor(
     readonly config: PilotConfig,
-    readonly repo: Repository
+    readonly repo: Repository,
   ) {
     this.store = new PilotStore(config.dataDir);
     this.issued = new IssuerStore(config.dataDir);
@@ -88,7 +88,7 @@ export class PilotService {
       });
       const logged = await this.repo.login(
         org.issuerHandle,
-        org.issuerPassword
+        org.issuerPassword,
       );
       if (logged.did !== org.did) {
         throw new Error("Configured organisation account mismatch");
@@ -101,7 +101,7 @@ export class PilotService {
           APPROVER,
           did,
           { action: "affiliations.review", organisationDid: org.did },
-          365
+          365,
         );
         this.authorities.set(`${org.did}:${did}`, record);
       }
@@ -112,7 +112,7 @@ export class PilotService {
     subject: string,
     claim: Claim,
     days: number,
-    id: string = randomUUID()
+    id: string = randomUUID(),
   ) {
     const descriptor = descriptors[claimType];
     if (!descriptor || validateClaim(claim, descriptor).length) {
@@ -214,7 +214,7 @@ export class PilotService {
     // Current operator appointment is mandatory even if an old signed authority exists.
     if (
       !this.config.organisations.some(
-        (o) => o.did === organisationDid && o.approvers.includes(actor)
+        (o) => o.did === organisationDid && o.approvers.includes(actor),
       )
     ) {
       return false;
@@ -250,12 +250,12 @@ export class PilotService {
     const terms = parseTerms(
       input,
       this.config.people,
-      this.config.organisations
+      this.config.organisations,
     );
     const p = newProposal(
       terms,
       actor,
-      await this.canReview(actor, terms.organisationDid)
+      await this.canReview(actor, terms.organisationDid),
     );
     this.store.transaction(() => {
       this.store.put("proposal", p);
@@ -267,7 +267,7 @@ export class PilotService {
     actor: string,
     id: string,
     revision: unknown,
-    input: Record<string, unknown>
+    input: Record<string, unknown>,
   ) {
     const p = this.getProposal(id);
     await this.participant(actor, p);
@@ -278,7 +278,7 @@ export class PilotService {
     const terms = parseTerms(
       input,
       this.config.people,
-      this.config.organisations
+      this.config.organisations,
     );
     if (
       terms.subject !== p.terms.subject ||
@@ -307,7 +307,7 @@ export class PilotService {
         "changed",
         p.id,
         terms.organisationDid,
-        `revision ${updated.revision}`
+        `revision ${updated.revision}`,
       );
     });
     return updated;
@@ -328,7 +328,7 @@ export class PilotService {
       if (!(await this.canReview(actor, p.terms.organisationDid))) {
         refuse(
           "You do not have permission to approve for this organisation.",
-          403
+          403,
         );
       }
       p.organisationApprovedBy = actor;
@@ -339,7 +339,7 @@ export class PilotService {
       "approved",
       p.id,
       p.terms.organisationDid,
-      `revision ${p.revision}`
+      `revision ${p.revision}`,
     );
     if (p.subjectApproved && p.organisationApprovedBy) {
       await this.publish(p);
@@ -382,7 +382,7 @@ export class PilotService {
             subject,
             { ...claim, proposalId: p.id, revision: p.revision },
             (Date.parse(p.terms.expiresAt) - Date.now()) / 86_400_000,
-            id
+            id,
           );
     }
     p.state = "publishing";
@@ -395,7 +395,7 @@ export class PilotService {
           p.terms.organisationDid,
           "no.demokratiloftet.attestation",
           key,
-          { ...p.record }
+          { ...p.record },
         );
         this.store.put("proposal", p);
         p.acceptance ??= {
@@ -410,7 +410,7 @@ export class PilotService {
           p.terms.subject,
           ACCEPTANCE,
           key,
-          p.acceptance
+          p.acceptance,
         );
         // Do not activate merely because a publisher returned a URI.
         await this.repo.read(p.ref);
@@ -463,7 +463,7 @@ export class PilotService {
     actor: string,
     id: string,
     revision: unknown,
-    action: "declined" | "revoked"
+    action: "declined" | "revoked",
   ) {
     const p = this.getProposal(id);
     await this.participant(actor, p);
@@ -527,14 +527,14 @@ export class PilotService {
     actor: string,
     id: string,
     revision: unknown,
-    input: Record<string, unknown>
+    input: Record<string, unknown>,
   ) {
     const p = this.getProposal(id);
     currentRevision(p, revision);
     if (!(await this.canReview(actor, p.terms.organisationDid))) {
       refuse(
         "Only the organisation’s approver can grant publishing access.",
-        403
+        403,
       );
     }
     if (!(await this.verify(p)).valid) {
@@ -563,7 +563,7 @@ export class PilotService {
           g.proposalId === id &&
           g.proposalRevision === p.revision &&
           g.scope === scope &&
-          Date.parse(g.expiresAt) > Date.now()
+          Date.parse(g.expiresAt) > Date.now(),
       );
     if (existing) {
       return existing;
@@ -581,7 +581,7 @@ export class PilotService {
       p.terms.subject,
       claim,
       (expiry - Date.now()) / 86_400_000,
-      grantId
+      grantId,
     );
     const g: Grant = {
       id: grantId,
@@ -597,7 +597,7 @@ export class PilotService {
       "grant-created",
       p.id,
       p.terms.organisationDid,
-      ACTION
+      ACTION,
     );
     return g;
   }
@@ -609,7 +609,7 @@ export class PilotService {
     if (!(await this.canReview(actor, g.organisationDid))) {
       refuse(
         "You do not have permission to approve for this organisation.",
-        403
+        403,
       );
     }
     g.revoked = true;
@@ -627,7 +627,7 @@ export class PilotService {
           row.organisationDid === org &&
           row.scope === scope &&
           !row.revoked &&
-          Date.parse(row.expiresAt) > Date.now()
+          Date.parse(row.expiresAt) > Date.now(),
       )) {
       const p = this.store.proposal(g.proposalId);
       if (
@@ -694,7 +694,7 @@ export class PilotService {
     const grant = await this.permission(
       event.actor,
       event.organisationDid,
-      event.scope
+      event.scope,
     );
     if (!grant || grant.id !== event.grantId) {
       event.state = "cancelled";
@@ -705,7 +705,7 @@ export class PilotService {
       event.organisationDid,
       EVENT,
       event.id,
-      event.record
+      event.record,
     );
     await this.repo.read(event.ref);
     event.state = "published";
@@ -747,7 +747,7 @@ export class PilotService {
         (p) =>
           actor &&
           (p.terms.subject === actor ||
-            orgs.some((o) => o.did === p.terms.organisationDid && o.canReview))
+            orgs.some((o) => o.did === p.terms.organisationDid && o.canReview)),
       );
     const publicRows = this.store
       .proposals()
@@ -760,7 +760,7 @@ export class PilotService {
         revision: p.revision,
         terms: p.terms,
         verification: await this.verify(p),
-      }))
+      })),
     );
     return {
       demo: true,
@@ -781,7 +781,7 @@ export class PilotService {
             .filter(
               (g) =>
                 g.subject === actor ||
-                orgs.some((o) => o.did === g.organisationDid && o.canReview)
+                orgs.some((o) => o.did === g.organisationDid && o.canReview),
             )
             .map((grant) => ({
               action: grant.action,
@@ -798,7 +798,7 @@ export class PilotService {
       history: actor
         ? this.store.history(
             orgs.filter((o) => o.canReview).map((o) => o.did),
-            actor
+            actor,
           )
         : [],
       organisations: orgs,
@@ -810,7 +810,7 @@ export class PilotService {
           acceptance: undefined,
           record: undefined,
           verification: await this.verify(p),
-        }))
+        })),
       ),
       publicCredentials,
     };

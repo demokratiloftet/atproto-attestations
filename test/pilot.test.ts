@@ -52,7 +52,7 @@ class MemoryRepo implements Repository {
     did: string,
     collection: string,
     key: string,
-    record: Record<string, unknown>
+    record: Record<string, unknown>,
   ) {
     const uri = `at://${did}/${collection}/${key}`;
     const cid = createHash("sha256")
@@ -181,7 +181,7 @@ void test("cannot appoint yourself, approve yourself or act for another organisa
   await assert.rejects(service.propose(outsider, terms()), /on behalf/u);
   await assert.rejects(
     service.propose(reviewer, terms(alice, otherOrg)),
-    /on behalf/u
+    /on behalf/u,
   );
   const p = await service.propose(reviewer, terms(reviewer));
   await service.approve(reviewer, p.id, 1);
@@ -209,7 +209,7 @@ void test("subject and organisation are immutable on edits", async (t) => {
   const p = await service.propose(alice, terms());
   await assert.rejects(
     service.change(alice, p.id, 1, { ...p.terms, subject: outsider }),
-    /cannot be changed/u
+    /cannot be changed/u,
   );
 });
 void test("decline remains private and cannot later be approved", async (t) => {
@@ -220,7 +220,7 @@ void test("decline remains private and cannot later be approved", async (t) => {
   assert.equal((await service.view()).publicCredentials.length, 0);
   await assert.rejects(
     service.approve(reviewer, p.id, 1),
-    /cannot be approved/u
+    /cannot be approved/u,
   );
 });
 void test("unknown publication outcome retries same two keys and survives service restart", async (t) => {
@@ -231,7 +231,7 @@ void test("unknown publication outcome retries same two keys and survives servic
   assert.equal(s.service.getProposal(p.id).state, "publishing");
   assert.equal(
     (await s.service.verify(s.service.getProposal(p.id))).valid,
-    false
+    false,
   );
   const recovery = new PilotService(s.config, s.repo);
   await recovery.init();
@@ -254,7 +254,7 @@ void test("affiliation does not grant publishing; explicit grant is required", a
       expiresAt: p.terms.expiresAt,
       scope: "*",
     }),
-    /Only/u
+    /Only/u,
   );
   await grant(p);
   const e = await service.publishEvent(alice, event());
@@ -268,11 +268,11 @@ void test("copied credential, wrong org and wrong scope never authorise", async 
   await assert.rejects(service.publishEvent(outsider, event()), /permission/u);
   await assert.rejects(
     service.publishEvent(alice, event(otherOrg)),
-    /permission/u
+    /permission/u,
   );
   await assert.rejects(
     service.publishEvent(alice, event(org, "team:one")),
-    /permission/u
+    /permission/u,
   );
 });
 void test("grant revocation takes effect on the next action", async (t) => {
@@ -280,7 +280,7 @@ void test("grant revocation takes effect on the next action", async (t) => {
   const g = await grant(await active());
   await assert.rejects(
     service.revokeGrant(otherReviewer, g.id),
-    /do not have permission/u
+    /do not have permission/u,
   );
   await service.revokeGrant(reviewer, g.id);
   await assert.rejects(service.publishEvent(alice, event()), /permission/u);
@@ -348,21 +348,21 @@ void test("trust binds issuer to signed organisation, not record location", asyn
           },
         ],
       }),
-    /literal/u
+    /literal/u,
   );
 });
 void test("unexpected input, unbounded lifetimes and unknown actions are refused", async (t) => {
   const { service, terms, active } = await setup(t);
   await assert.rejects(
     service.propose(alice, { ...terms(), approved: true }),
-    /Unknown/u
+    /Unknown/u,
   );
   await assert.rejects(
     service.propose(alice, {
       ...terms(),
       expiresAt: new Date(Date.now() + 91 * 86_400_000).toISOString(),
     }),
-    /90 days/u
+    /90 days/u,
   );
   const p = await active();
   await assert.rejects(
@@ -371,7 +371,7 @@ void test("unexpected input, unbounded lifetimes and unknown actions are refused
       expiresAt: p.terms.expiresAt,
       scope: "*",
     }),
-    /Unknown/u
+    /Unknown/u,
   );
   await assert.rejects(
     service.grant(reviewer, p.id, 1, {
@@ -379,7 +379,7 @@ void test("unexpected input, unbounded lifetimes and unknown actions are refused
       expiresAt: new Date(Date.now() + 2 * 86_400_000).toISOString(),
       scope: "*",
     }),
-    /expire/u
+    /expire/u,
   );
 });
 void test("revocation is ordered ahead of subsequent queued actions", async (t) => {
@@ -387,7 +387,7 @@ void test("revocation is ordered ahead of subsequent queued actions", async (t) 
   const p = await active();
   await grant(p);
   const revoke = service.exclusive(() =>
-    service.end(reviewer, p.id, 1, "revoked")
+    service.end(reviewer, p.id, 1, "revoked"),
   );
   const publish = service.exclusive(() => service.publishEvent(alice, event()));
   await revoke;
@@ -408,7 +408,7 @@ void test("HTTP requires session and exact origin; cookies rotate; private state
   const call = async (
     path: string,
     body?: unknown,
-    headers: Record<string, string> = {}
+    headers: Record<string, string> = {},
   ) =>
     fetch(url + path, {
       body: body ? JSON.stringify(body) : undefined,
@@ -425,15 +425,15 @@ void test("HTTP requires session and exact origin; cookies rotate; private state
         await call(
           "/api/login",
           { handle: "alice.test", password: "synthetic-test-password" },
-          { origin: "https://evil.test" }
+          { origin: "https://evil.test" },
         )
       ).status,
-      403
+      403,
     );
     assert.equal(
       (await call("/api/login", { handle: "alice.test", password: "wrong" }))
         .status,
-      401
+      401,
     );
     const response = await call("/api/login", {
       handle: "alice.test",
@@ -462,7 +462,7 @@ void test("HTTP requires session and exact origin; cookies rotate; private state
             password: "wrong",
           })
         ).status,
-        401
+        401,
       );
     }
     assert.equal(
@@ -472,7 +472,7 @@ void test("HTTP requires session and exact origin; cookies rotate; private state
           password: "synthetic-test-password",
         })
       ).status,
-      429
+      429,
     );
   } finally {
     await new Promise<void>((resolve) => {

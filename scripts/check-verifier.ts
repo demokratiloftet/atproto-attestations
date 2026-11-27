@@ -20,7 +20,7 @@ try {
       name: "verifier-consumer",
       private: true,
       type: "module",
-    })
+    }),
   );
   execFileSync(
     "pnpm",
@@ -29,7 +29,7 @@ try {
       "--ignore-scripts",
       join(root, "dist/loftet-attestation-verifier-0.1.1.tgz"),
     ],
-    { cwd: directory, stdio: "pipe" }
+    { cwd: directory, stdio: "pipe" },
   );
   const signer = await generateKeyPair("consumer-check");
   const issuer = "https://issuer.example/.well-known/attestation-issuer.json";
@@ -45,7 +45,7 @@ try {
     join(directory, "fixture.json"),
     JSON.stringify({
       descriptor: readJson(
-        join(root, "claim-types/no.nif.identityLinked.json")
+        join(root, "claim-types/no.nif.identityLinked.json"),
       ),
       policy: {
         requireStatusCheck: false,
@@ -58,7 +58,7 @@ try {
         ],
       },
       record,
-    })
+    }),
   );
   writeFileSync(
     join(directory, "consumer.ts"),
@@ -76,7 +76,7 @@ assert(result.valid,result.reason);
 assert.equal(result.attestation.subject,'did:plc:consumer');
 assert.equal((await verifyAttestation('invalid',{trustPolicy,claimTypes})).valid,false);
 console.log('PASS standalone package verifies a real signature and refuses invalid input');
-`
+`,
   );
   execFileSync(
     join(root, "node_modules/.bin/tsc"),
@@ -94,7 +94,7 @@ console.log('PASS standalone package verifies a real signature and refuses inval
       "node",
       "consumer.ts",
     ],
-    { cwd: directory, stdio: "inherit" }
+    { cwd: directory, stdio: "inherit" },
   );
   execFileSync(process.execPath, ["consumer.js"], {
     cwd: directory,
@@ -107,32 +107,32 @@ console.log('PASS standalone package verifies a real signature and refuses inval
       {
         cwd: root,
         encoding: "utf-8",
-      }
-    )
+      },
+    ),
   );
   assert.ok(
     rawContents &&
       typeof rawContents === "object" &&
       "files" in rawContents &&
-      Array.isArray(rawContents.files)
+      Array.isArray(rawContents.files),
   );
   const files = rawContents.files.map((file: unknown) => {
     assert.ok(
       file &&
         typeof file === "object" &&
         "path" in file &&
-        typeof file.path === "string"
+        typeof file.path === "string",
     );
     return { path: file.path };
   });
   assert.ok(
     files.every((file) =>
-      /^(package\.json|LICENSE|[a-z-]+\.(js|d\.ts))$/u.test(file.path)
-    )
+      /^(package\.json|LICENSE|[a-z-]+\.(js|d\.ts))$/u.test(file.path),
+    ),
   );
   assert.ok(!files.some((file) => /^(sign|issuer|keys)\./u.test(file.path)));
   console.log(
-    "PASS verifier declarations compile without DOM; package contains no issuer implementation"
+    "PASS verifier declarations compile without DOM; package contains no issuer implementation",
   );
 } finally {
   rmSync(directory, { force: true, recursive: true });

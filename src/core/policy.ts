@@ -9,7 +9,7 @@ function deny(reason: string): Decision {
 }
 async function evaluateEvidence(
   rule: Extract<RequesterRule, { kind: "attestation" }>,
-  context: PolicyContext
+  context: PolicyContext,
 ): Promise<Decision> {
   const {
     requester = {},
@@ -25,7 +25,7 @@ async function evaluateEvidence(
   }
   if (!evidence.length) {
     return deny(
-      `Du må vise en gyldig ${rule.claimType} for å spørre om dette.`
+      `Du må vise en gyldig ${rule.claimType} for å spørre om dette.`,
     );
   }
   let reason = `Ingen av attestasjonene dine oppfyller ${rule.claimType}.`;
@@ -68,7 +68,7 @@ async function evaluateEvidence(
 /** Shared descriptor policy for issuance and restricted disclosure. */
 export async function evaluateRequester(
   rules: RequesterRule[] | undefined,
-  context: PolicyContext
+  context: PolicyContext,
 ): Promise<Decision> {
   const { requester = {}, subject } = context;
   if (!Array.isArray(rules) || !rules.length) {
@@ -92,7 +92,7 @@ export async function evaluateRequester(
         };
       }
       reasons.push(
-        `Denne forespørselen er forbeholdt klienten ${rule.client}.`
+        `Denne forespørselen er forbeholdt klienten ${rule.client}.`,
       );
       continue;
     }

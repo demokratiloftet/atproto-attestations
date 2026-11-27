@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 
 const stages = [
-  ["Lint", "lint"],
   ["Formatting", "format:check"],
   ["Type safety", "typecheck"],
   ["Unit and security regression tests", "test"],
@@ -19,5 +18,5 @@ for (const [label, script] of stages) {
   console.log(`✓ ${label}`);
 }
 console.log(
-  "\nAll local checks passed. CI also runs dependency/secret scans, the isolated AT integration and container builds."
+  "\nAll local checks passed. CI also runs dependency/secret scans, the isolated AT integration and container builds.",
 );

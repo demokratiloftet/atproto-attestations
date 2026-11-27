@@ -14,7 +14,7 @@ export async function generateKeyPair(kid: string): Promise<Signer> {
   const pair = await crypto.subtle.generateKey(
     { name: "ECDSA", namedCurve: "P-256" },
     true,
-    ["sign", "verify"]
+    ["sign", "verify"],
   );
   const privateJwk = {
     ...(await crypto.subtle.exportKey("jwk", pair.privateKey)),
@@ -73,7 +73,7 @@ export async function importSigningKey(input: unknown): Promise<Signer> {
     { ...privateJwk, ext: false, key_ops: ["sign"] },
     { name: "ECDSA", namedCurve: "P-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
   return {
     key,
@@ -89,7 +89,7 @@ export async function signCompact(signer: Signer, payload: unknown) {
   const signature = await crypto.subtle.sign(
     { hash: "SHA-256", name: "ECDSA" },
     key,
-    Buffer.from(signing)
+    Buffer.from(signing),
   );
   return `${signing}.${Buffer.from(signature).toString("base64url")}`;
 }

@@ -7,7 +7,7 @@ void test("local defaults listen only on loopback and cannot claim a public orig
   assert.equal(readConfig({}).host, "127.0.0.1");
   assert.throws(
     () => readConfig({ ISSUER_ORIGIN: "https://issuer.example" }),
-    /loopback/u
+    /loopback/u,
   );
 });
 
@@ -19,6 +19,6 @@ void test("an empty token cannot authorize requests with no credentials", () => 
           { id: "test", scopes: ["admin"], token: "" },
         ]),
       }),
-    /nonempty token/u
+    /nonempty token/u,
   );
 });

@@ -5,11 +5,19 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 14
+
   - package-ecosystem: npm
     directories: ["/", "/pilot-fixture"]
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 14
+      semver-major-days: 30
+      semver-minor-days: 14
+      semver-patch-days: 7
     groups:
       oxc-toolchain:
         patterns: ["ultracite", "oxlint", "oxfmt", "oxlint-tsgolint"]

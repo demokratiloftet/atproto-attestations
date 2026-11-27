@@ -20,12 +20,12 @@ void test("simplified form creates stable Unicode role codes without merging dis
   const second = await proposalTerms(
     { ...fields, roleLabel: "  RÅDGIVER  " },
     context,
-    now
+    now,
   );
   const different = await proposalTerms(
     { ...fields, roleLabel: "Radgiver" },
     context,
-    now
+    now,
   );
   assert.equal(first.roleId, second.roleId);
   assert.notEqual(first.roleId, different.roleId);
@@ -44,7 +44,7 @@ void test("existing role codes are reused only for an unambiguous matching label
       ...context,
       roles: [...roles, { roleId: "org.another", roleLabel: "rådgiver" }],
     },
-    now
+    now,
   );
   assert.notEqual(ambiguous.roleId, "org.adviser");
 });
@@ -63,7 +63,7 @@ void test("editing preserves the person, scope, visibility and expiry unless exp
       subject: "wrong-person",
     },
     { ...context, previous },
-    now
+    now,
   );
   assert.equal(updated.subject, previous.subject);
   assert.equal(updated.roleId, previous.roleId);
@@ -74,7 +74,7 @@ void test("editing preserves the person, scope, visibility and expiry unless exp
   const changed = await proposalTerms(
     { ...fields, duration: "7", roleLabel: "Trener", visibility: "public" },
     { ...context, previous },
-    now
+    now,
   );
   assert.notEqual(changed.roleId, previous.roleId);
   assert.equal(Date.parse(changed.expiresAt), now + 7 * 86_400_000);
@@ -88,19 +88,19 @@ void test("a future start is preserved and invalid duration choices fail before 
   const updated = await proposalTerms(
     { ...fields, duration: "keep" },
     { ...context, previous },
-    now
+    now,
   );
   assert.equal(updated.validFrom, previous.validFrom);
   await assert.rejects(
     proposalTerms({ ...fields, duration: "7" }, { ...context, previous }, now),
-    /after the start date/u
+    /after the start date/u,
   );
   await assert.rejects(
     proposalTerms({ ...fields, duration: "keep" }, context, now),
-    /how long/u
+    /how long/u,
   );
   await assert.rejects(
     proposalTerms({ ...fields, roleLabel: " " }, context, now),
-    /role/u
+    /role/u,
   );
 });

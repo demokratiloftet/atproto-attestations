@@ -120,13 +120,13 @@ Policy evaluation is depth-limited to one level. Presented evidence is verified 
 
 ## What each organisation supplies
 
-| Here | The organisation |
-| --- | --- |
-| Claim envelope, signing, key publication | Its signing key |
-| Claim-type descriptors and their validation | Which claim types it offers |
-| Issuance and disclosure policy | Its authority data, through one adapter |
-| Status, revocation, audit | Its deployment and domain |
-| Verification library and CLI | — |
+| Here                                        | The organisation                        |
+| ------------------------------------------- | --------------------------------------- |
+| Claim envelope, signing, key publication    | Its signing key                         |
+| Claim-type descriptors and their validation | Which claim types it offers             |
+| Issuance and disclosure policy              | Its authority data, through one adapter |
+| Status, revocation, audit                   | Its deployment and domain               |
+| Verification library and CLI                | —                                       |
 
 Generic software cannot make an organisation authoritative. Every consuming application still decides which issuer it accepts for which claim types.
 
@@ -140,18 +140,18 @@ See `src/adapters/README.md`. An adapter answers one question — _is this fact 
 
 ## HTTP
 
-|  |  |  |
-| --- | --- | --- |
-| `GET` | `/.well-known/attestation-issuer.json` | Public. Name, keys, claim types offered. |
-| `GET` | `/trust-policy.json` | Public. What an application should trust to accept this issuer. |
-| `GET` | `/claim-types` | Public. The descriptors. |
-| `GET` | `/status/{id}` | Public, signed. `active`, `revoked`, `expired` or `unknown`. |
-| `POST` | `/issue` | Scope `issue`. |
-| `POST` | `/revoke` | Scope `revoke`. |
-| `POST` | `/query` | Scope `query`. Restricted claims. |
-| `GET` | `/held?subject=` | Scope `query`. Public claims held by an account. |
-| `GET` | `/audit` | Scope `admin`. |
-| `POST` | `/demo/enrol`, `GET /demo/roster` | Demo deployments only. Synthetic facts. |
+|        |                                        |                                                                 |
+| ------ | -------------------------------------- | --------------------------------------------------------------- |
+| `GET`  | `/.well-known/attestation-issuer.json` | Public. Name, keys, claim types offered.                        |
+| `GET`  | `/trust-policy.json`                   | Public. What an application should trust to accept this issuer. |
+| `GET`  | `/claim-types`                         | Public. The descriptors.                                        |
+| `GET`  | `/status/{id}`                         | Public, signed. `active`, `revoked`, `expired` or `unknown`.    |
+| `POST` | `/issue`                               | Scope `issue`.                                                  |
+| `POST` | `/revoke`                              | Scope `revoke`.                                                 |
+| `POST` | `/query`                               | Scope `query`. Restricted claims.                               |
+| `GET`  | `/held?subject=`                       | Scope `query`. Public claims held by an account.                |
+| `GET`  | `/audit`                               | Scope `admin`.                                                  |
+| `POST` | `/demo/enrol`, `GET /demo/roster`      | Demo deployments only. Synthetic facts.                         |
 
 Clients authenticate with a bearer token and carry scopes. The issuer trusts a registered client to have authenticated the accounts it names in `requesterDid` and `subject`: proving control of an AT Protocol account belongs to the calling application, and this service never sees a password or a login session.
 

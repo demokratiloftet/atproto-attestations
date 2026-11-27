@@ -65,7 +65,7 @@ function repository(config: PilotConfig): Repository {
   return {
     login(identifier) {
       const org = config.organisations.find(
-        (row) => row.issuerHandle === identifier
+        (row) => row.issuerHandle === identifier,
       );
       if (!org) {
         return Promise.reject(new Error("Unenrolled fixture account"));
@@ -126,13 +126,13 @@ void test("the same workflow supports employers, assemblies, federations and clu
       const active = await service.approve(
         did(0),
         proposal.id,
-        proposal.revision
+        proposal.revision,
       );
       assert.equal((await service.verify(active)).valid, true);
       assert.equal(active.terms.roleId, example.role);
       assert.equal(
         await service.permission(did(1), did(3), "unit:one"),
-        undefined
+        undefined,
       );
       await service.grant(did(0), active.id, active.revision, {
         action: "events.publish",
@@ -142,12 +142,12 @@ void test("the same workflow supports employers, assemblies, federations and clu
       assert.ok(await service.permission(did(1), did(3), "unit:one"));
       assert.equal(
         await service.permission(did(1), did(2), "unit:one"),
-        undefined
+        undefined,
       );
       await service.end(did(1), active.id, active.revision, "revoked");
       assert.equal(
         await service.permission(did(1), did(3), "unit:one"),
-        undefined
+        undefined,
       );
     } finally {
       service.close();
@@ -165,21 +165,21 @@ void test("enrolment refuses duplicate identities and unauthorised approvers", (
       enrolOrganisation(config, {
         organisation: { ...input.organisation, did: did(1) },
       }),
-    /Duplicate/u
+    /Duplicate/u,
   );
   assert.throws(
     () =>
       enrolOrganisation(config, {
         organisation: { ...input.organisation, issuerHandle: "person.test" },
       }),
-    /Duplicate/u
+    /Duplicate/u,
   );
   assert.throws(
     () =>
       enrolOrganisation(config, {
         organisation: { ...input.organisation, approvers: [did(20)] },
       }),
-    /enrolled/u
+    /enrolled/u,
   );
   assert.throws(
     () =>
@@ -190,22 +190,22 @@ void test("enrolment refuses duplicate identities and unauthorised approvers", (
           issuerHandle: "another.test",
         },
       }),
-    /Duplicate organisation domain/u
+    /Duplicate organisation domain/u,
   );
   assert.throws(
     () => parsePilotConfig({ ...config, sandbox: "true" }),
-    /Explicit sandbox/u
+    /Explicit sandbox/u,
   );
   assert.throws(
     () => parsePilotConfig({ ...config, pds: "https://public.example" }),
-    /isolated/u
+    /isolated/u,
   );
   assert.equal(
     parsePilotConfig({
       ...config,
       pdsCanonical: "https://another-sandbox.example",
     }).pdsCanonical,
-    "https://another-sandbox.example"
+    "https://another-sandbox.example",
   );
   assert.equal(config.organisations[0]?.domain, undefined);
 });
